@@ -17,6 +17,12 @@
 			"style": {
 				"navigationBarTitleText": "我的"
 			}
+		},
+		{
+			"path": "pages/evaluation/index",
+			"style": {
+				"navigationBarTitleText": "评估结果"
+			}
 		}
 	],
 	"globalStyle": {

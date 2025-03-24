@@ -47,24 +47,6 @@
         </button>
       </view>
     </view>
-
-    <!-- 评估结果展示 -->
-    <view class="evaluation-section" v-if="evaluationResult">
-      <view class="evaluation-card">
-        <view class="score-section">
-          <text class="score-label">得分</text>
-          <text class="score-value">{{ evaluationResult.score }}</text>
-        </view>
-        <view class="feedback-section">
-          <text class="feedback-title">评价</text>
-          <text class="feedback-content">{{ evaluationResult.feedback }}</text>
-        </view>
-        <view class="suggestions-section">
-          <text class="suggestions-title">建议</text>
-          <text class="suggestions-content">{{ evaluationResult.suggestions }}</text>
-        </view>
-      </view>
-    </view>
   </view>
 </template>
 
@@ -72,7 +54,6 @@
 import { ref } from 'vue'
 import { questionBanks } from '@/mock/questions'
 import { getActiveQuestionBankId } from '@/store'
-import { evaluateAnswer } from '@/utils/deepseek'
 
 interface CurrentQuestion {
   content: string
@@ -84,13 +65,6 @@ const currentQuestion = ref<CurrentQuestion | null>(null)
 const selectedMode = ref('')
 const textAnswer = ref('')
 const isRecording = ref(false)
-
-// 评估结果
-const evaluationResult = ref<{
-  score: number
-  feedback: string
-  suggestions: string
-} | null>(null)
 
 const startQuiz = () => {
   const activeId = getActiveQuestionBankId()
@@ -139,25 +113,17 @@ const submitAnswer = async () => {
     return
   }
 
-  try {
-    uni.showLoading({
-      title: '正在评估...'
-    })
+  console.log('提交答案:', textAnswer.value)
 
-    const result = await evaluateAnswer(
-      currentQuestion.value.content,
-      textAnswer.value
-    )
-
-    evaluationResult.value = result
-  } catch (error) {
-    uni.showToast({
-      title: '评估失败，请重试',
-      icon: 'none'
-    })
-  } finally {
-    uni.hideLoading()
-  }
+  uni.navigateTo({
+    url: '/pages/evaluation/index',
+    success: (res) => {
+      res.eventChannel.emit('evaluateAnswer', {
+        question: currentQuestion.value?.content,
+        answer: textAnswer.value
+      })
+    }
+  })
 }
 
 const startRecording = () => {
