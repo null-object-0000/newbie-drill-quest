@@ -1,16 +1,48 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+	"pages": [
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "uni-app"
+				"navigationBarTitleText": "挑战"
+			}
+		},
+		{
+			"path": "pages/question-bank/index",
+			"style": {
+				"navigationBarTitleText": "题库"
+			}
+		},
+		{
+			"path": "pages/profile/index",
+			"style": {
+				"navigationBarTitleText": "我的"
 			}
 		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
+		"navigationBarTitleText": "面试挑战",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#007AFF",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "挑战"
+			},
+			{
+				"pagePath": "pages/question-bank/index",
+				"text": "题库"
+			},
+			{
+				"pagePath": "pages/profile/index",
+				"text": "我的"
+			}
+		]
 	}
 }
