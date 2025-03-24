@@ -3,7 +3,7 @@
     <view class="welcome-section" v-if="!currentQuestion?.content">
       <image class="logo" src="/static/logo.png" />
       <view class="text-area">
-        <text class="title">面试挑战</text>
+        <text class="title">生存挑战</text>
         <text class="subtitle">准备好接受挑战了吗？</text>
       </view>
       <button class="start-btn" @click="startQuiz">开始挑战</button>
@@ -22,7 +22,7 @@
         <button class="answer-btn text" @click="selectAnswerMode('text')">
           <text class="btn-text">文字回答</text>
         </button>
-        <button class="answer-btn voice" @click="selectAnswerMode('voice')">
+        <button class="answer-btn voice" disabled @click="selectAnswerMode('voice')">
           <text class="btn-text">语音回答</text>
         </button>
       </view>
@@ -47,13 +47,32 @@
         </button>
       </view>
     </view>
+
+    <!-- 评估结果展示 -->
+    <view class="evaluation-section" v-if="evaluationResult">
+      <view class="evaluation-card">
+        <view class="score-section">
+          <text class="score-label">得分</text>
+          <text class="score-value">{{ evaluationResult.score }}</text>
+        </view>
+        <view class="feedback-section">
+          <text class="feedback-title">评价</text>
+          <text class="feedback-content">{{ evaluationResult.feedback }}</text>
+        </view>
+        <view class="suggestions-section">
+          <text class="suggestions-title">建议</text>
+          <text class="suggestions-content">{{ evaluationResult.suggestions }}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { questionBanks } from '@/data/questions'
+import { questionBanks } from '@/mock/questions'
 import { getActiveQuestionBankId } from '@/store'
+import { evaluateAnswer } from '@/utils/deepseek'
 
 interface CurrentQuestion {
   content: string
@@ -65,6 +84,13 @@ const currentQuestion = ref<CurrentQuestion | null>(null)
 const selectedMode = ref('')
 const textAnswer = ref('')
 const isRecording = ref(false)
+
+// 评估结果
+const evaluationResult = ref<{
+  score: number
+  feedback: string
+  suggestions: string
+} | null>(null)
 
 const startQuiz = () => {
   const activeId = getActiveQuestionBankId()
@@ -95,15 +121,43 @@ const startQuiz = () => {
     difficulty: selectedQuestion.difficulty,
     category: selectedQuestion.category
   }
+
+  // 默认选择文字回答模式
+  selectAnswerMode('text')
 }
 
 const selectAnswerMode = (mode: 'text' | 'voice') => {
   selectedMode.value = mode
 }
 
-const submitAnswer = () => {
-  // TODO: 调用OpenAI API进行点评
-  console.log('提交答案:', textAnswer.value)
+const submitAnswer = async () => {
+  if (!currentQuestion.value || !textAnswer.value.trim()) {
+    uni.showToast({
+      title: '请输入答案',
+      icon: 'none'
+    })
+    return
+  }
+
+  try {
+    uni.showLoading({
+      title: '正在评估...'
+    })
+
+    const result = await evaluateAnswer(
+      currentQuestion.value.content,
+      textAnswer.value
+    )
+
+    evaluationResult.value = result
+  } catch (error) {
+    uni.showToast({
+      title: '评估失败，请重试',
+      icon: 'none'
+    })
+  } finally {
+    uni.hideLoading()
+  }
 }
 
 const startRecording = () => {
@@ -288,5 +342,57 @@ const stopRecording = () => {
 .record-btn.recording {
   background-color: #007AFF;
   color: #fff;
+}
+
+.evaluation-section {
+  margin-top: 40rpx;
+}
+
+.evaluation-card {
+  background-color: #fff;
+  padding: 40rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.score-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.score-label {
+  font-size: 32rpx;
+  color: #333;
+}
+
+.score-value {
+  font-size: 48rpx;
+  color: #007AFF;
+  font-weight: bold;
+}
+
+.feedback-section,
+.suggestions-section {
+  margin-bottom: 20rpx;
+}
+
+.feedback-title,
+.suggestions-title {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.feedback-content,
+.suggestions-content {
+  font-size: 30rpx;
+  color: #333;
+  line-height: 1.6;
+  display: block;
 }
 </style>

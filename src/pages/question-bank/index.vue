@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { questionBanks as mockQuestionBanks } from '@/data/questions'
+import { questionBanks as mockQuestionBanks } from '@/mock/questions'
 import { activateQuestionBank, getActiveQuestionBankId } from '@/store'
 
 // 题库列表数据

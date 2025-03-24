@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket SSE 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #sendButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #sendButton:disabled {
+            background-color: #ccc;
+        }
+
+        #messages {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .message {
+            margin: 10px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-message {
+            align-items: flex-end;
+        }
+
+        .ai-message {
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .reasoning-bubble {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .user-message .message-bubble {
+            background-color: #007bff;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .ai-message .message-bubble {
+            background-color: #f1f0f0;
+            color: #333;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #666;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="status" class="disconnected">未连接</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <select id="modelSelect" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="deepseek-chat">DeepSeek Chat</option>
+            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+        </select>
+        <input type="number" id="tempInput" placeholder="温度 (0-2)" value="0.7" min="0" max="2" step="0.1"
+            style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <input type="number" id="maxTokensInput" placeholder="最大Token数" value="1000" min="1" max="4096"
+            style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    </div>
+    <textarea id="messageInput" placeholder="输入要发送给AI的消息..."></textarea>
+    <button id="sendButton" disabled>发送</button>
+    <div id="messages"></div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:18780');
+        const status = document.getElementById('status');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const messages = document.getElementById('messages');
+
+        // 连接建立时
+        ws.onopen = () => {
+            status.textContent = '已连接';
+            status.className = 'connected';
+            sendButton.disabled = false;
+        };
+
+        // 连接关闭时
+        ws.onclose = () => {
+            status.textContent = '连接已断开，5秒后重试...';
+            status.className = 'disconnected';
+            sendButton.disabled = true;
+            setTimeout(() => {
+                window.location.reload();
+            }, 5000);
+        };
+
+        // 发生错误时
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            status.textContent = '连接错误';
+            status.className = 'disconnected';
+            sendButton.disabled = true;
+        };
+
+        let currentAiMessage = '';
+        let currentReasoningMessage = '';
+
+        function formatTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function appendMessage(content, isUser = false, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = formatTime();
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            if (isError) {
+                bubble.style.backgroundColor = '#ffebee';
+                bubble.style.color = '#c62828';
+            }
+            bubble.textContent = content;
+            messageDiv.appendChild(bubble);
+            messageDiv.appendChild(timeDiv);
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // 接收消息时
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.error) {
+                    appendMessage(data.error, false, true);
+                } else if (data.choices && data.choices[0].delta) {
+                    const delta = data.choices[0].delta;
+                    if (delta.reasoning_content) {
+                        currentReasoningMessage += delta.reasoning_content;
+                        const lastMessage = messages.lastElementChild;
+                        if (lastMessage && lastMessage.classList.contains('ai-message')) {
+                            let reasoningBubble = lastMessage.querySelector('.reasoning-bubble');
+                            if (!reasoningBubble) {
+                                reasoningBubble = document.createElement('div');
+                                reasoningBubble.className = 'reasoning-bubble';
+                                lastMessage.insertBefore(reasoningBubble, lastMessage.querySelector('.message-time'));
+                            }
+                            reasoningBubble.textContent = currentReasoningMessage;
+                        } else {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.className = 'message ai-message';
+                            
+                            const reasoningBubble = document.createElement('div');
+                            reasoningBubble.className = 'reasoning-bubble';
+                            reasoningBubble.textContent = currentReasoningMessage;
+                            
+                            const timeDiv = document.createElement('div');
+                            timeDiv.className = 'message-time';
+                            timeDiv.textContent = formatTime();
+                            
+                            messageDiv.appendChild(reasoningBubble);
+                            messageDiv.appendChild(timeDiv);
+                            messages.appendChild(messageDiv);
+                        }
+                    } else if (delta.content) {
+                        currentAiMessage += delta.content;
+                        const lastMessage = messages.lastElementChild;
+                        if (lastMessage && lastMessage.classList.contains('ai-message')) {
+                            let contentBubble = lastMessage.querySelector('.message-bubble');
+                            if (!contentBubble) {
+                                contentBubble = document.createElement('div');
+                                contentBubble.className = 'message-bubble';
+                                lastMessage.insertBefore(contentBubble, lastMessage.querySelector('.message-time'));
+                            }
+                            contentBubble.textContent = currentAiMessage;
+                        } else {
+                            appendMessage(currentAiMessage, false);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error parsing message:', error);
+                appendMessage('消息解析错误', false, true);
+            }
+        };
+
+        // 发送消息
+        sendButton.onclick = () => {
+            const message = messageInput.value.trim();
+            if (message && ws.readyState === WebSocket.OPEN) {
+                const apiConfig = {
+                    model: modelSelect.value,
+                    temperature: parseFloat(tempInput.value) || 0.7,
+                    max_tokens: parseInt(maxTokensInput.value) || 1000,
+                    messages: [{
+                        role: 'user',
+                        content: message
+                    }]
+                };
+                appendMessage(message, true);
+                currentAiMessage = '';
+                currentReasoningMessage = '';
+                ws.send(JSON.stringify(apiConfig));
+                messageInput.value = '';
+            }
+        };
+
+        // 按Enter发送消息
+        messageInput.onkeypress = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendButton.click();
+            }
+        };
+    </script>
+</body>
+
+</html>
