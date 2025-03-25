@@ -101,7 +101,7 @@ async function evaluateWithRequest(question: string, answer: string): Promise<Fe
                     const content = data.choices[0].message.content
                     const result = JSON.parse(content)
                     resolve({
-                        score: result.score || 0,
+                        score: result.score,
                         feedback: result.feedback || '',
                         suggestions: result.suggestions || '',
                         example: result.example || '',
@@ -125,7 +125,7 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
             let currentContent = ''
 
             let current: FeedbackResult = {
-                score: 0,
+                score: -1,
                 feedback: '',
                 suggestions: '',
                 example: '',
@@ -203,7 +203,7 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                             try {
                                 // 尝试解析当前内容中的 JSON 对象
                                 const parsedResult = JSON.parse(completionContent(currentContent))
-                                current.score = parsedResult.score || -1
+                                current.score = parsedResult.score
                                 current.feedback = parsedResult.feedback || ''
                                 current.suggestions = parsedResult.suggestions || ''
                                 current.example = parsedResult.example || ''

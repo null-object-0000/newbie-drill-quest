@@ -6,7 +6,8 @@
                 <view class="score-section">
                     <text class="score-label">得分</text>
                     <text class="score-value">
-                        {{ evaluationProgress.score < 0 ? '评估中' + loadingDots : evaluationProgress.score }}
+                        <text style="font-size: 32rpx;" v-if="evaluationProgress.score < 0">评估中...</text>
+                        <text v-else>{{ evaluationProgress.score }}</text>
                     </text>
                 </view>
                 <view class="feedback-section" v-if="evaluationProgress.feedback">
@@ -42,29 +43,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import { ref, onMounted, getCurrentInstance } from 'vue'
 import { evaluateAnswer } from '@/utils/deepseek'
-
-const loadingDots = ref('...')
-let dotsTimer: number | null = null
-
-const updateDots = () => {
-    if (loadingDots.value === '') loadingDots.value = '.'
-    else if (loadingDots.value === '.') loadingDots.value = '..'
-    else if (loadingDots.value === '..') loadingDots.value = '...'
-    else loadingDots.value = ''
-}
-
-onMounted(() => {
-    dotsTimer = setInterval(updateDots, 500)
-})
-
-onUnmounted(() => {
-    if (dotsTimer) {
-        clearInterval(dotsTimer)
-        dotsTimer = null
-    }
-})
 
 const evaluationProgress = ref<{
     score: number
@@ -142,17 +122,16 @@ const goBack = () => {
 <style>
 .content {
     padding: 40rpx;
-    height: 100vh;
+    min-height: 100vh;
     background-color: #f5f5f5;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .evaluation-section {
     margin-top: 40rpx;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
 }
 
 .evaluation-card {
@@ -160,10 +139,6 @@ const goBack = () => {
     padding: 40rpx;
     border-radius: 20rpx;
     box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
 }
 
 .score-section {
@@ -188,37 +163,46 @@ const goBack = () => {
 
 .feedback-section,
 .suggestions-section,
-.example-section {
+.example-section,
+.follow-up-section {
     margin-bottom: 20rpx;
-}
-
-.feedback-title,
-.suggestions-title,
-.example-title {
-    font-size: 28rpx;
-    color: #666;
-    margin-bottom: 10rpx;
-    display: block;
+    flex-shrink: 0;
 }
 
 .feedback-content,
 .suggestions-content,
-.example-content {
+.example-content,
+.follow-up-content {
     font-size: 30rpx;
     color: #333;
     line-height: 1.6;
     display: block;
     transition: opacity 0.3s ease;
+    word-break: break-all;
+    white-space: pre-wrap;
 }
 
-@keyframes typing {
-    from {
-        border-right: 2px solid #007AFF;
-    }
+.feedback-title,
+.suggestions-title,
+.example-title,
+.follow-up-title {
+    font-size: 32rpx;
+    color: #333;
+    margin-bottom: 16rpx;
+    display: block;
+    font-weight: 500;
+}
 
-    to {
-        border-right: 2px solid transparent;
-    }
+.feedback-content,
+.suggestions-content,
+.example-content,
+.follow-up-content {
+    font-size: 30rpx;
+    color: #333;
+    line-height: 1.6;
+    display: block;
+    transition: opacity 0.3s ease;
+    margin-bottom: 30rpx;
 }
 
 .follow-up-section {
