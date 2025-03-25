@@ -6,39 +6,50 @@
                 <view class="score-section">
                     <text class="score-label">得分</text>
                     <text class="score-value">
-                        <text style="font-size: 32rpx;" v-if="evaluationProgress.score < 0">评估中...</text>
+                        <text v-if="evaluationProgress.score < 0" class="loading-container">
+                            <text class="loading-text">评估中</text>
+                            <text class="loading-dots">
+                                <text class="dot" v-for="i in 3">.</text>
+                            </text>
+                        </text>
                         <text v-else>{{ evaluationProgress.score }}</text>
                     </text>
                 </view>
-                <view class="feedback-section" v-if="evaluationProgress.feedback">
-                    <text class="feedback-title">评价</text>
-                    <text class="feedback-content">
-                        {{ evaluationProgress.feedback }}
-                    </text>
+                <view v-if="evaluationProgress.score < 0 || !evaluationProgress.feedback" class="placeholder-sections">
+                    <view class="placeholder-section">
+                        <view class="placeholder-title"></view>
+                        <view class="placeholder-content"></view>
+                    </view>
+                    <view class="placeholder-section">
+                        <view class="placeholder-title"></view>
+                        <view class="placeholder-content"></view>
+                    </view>
                 </view>
-                <view class="suggestions-section" v-if="evaluationProgress.suggestions">
-                    <text class="suggestions-title">建议</text>
-                    <text class="suggestions-content">
-                        {{ evaluationProgress.suggestions }}
-                    </text>
-                </view>
-                <view class="example-section" v-if="evaluationProgress.example">
-                    <text class="example-title">范例</text>
-                    <text class="example-content">
-                        {{ evaluationProgress.example }}
-                    </text>
-                </view>
-                <view v-if="evaluationProgress.needFollowUp" class="follow-up-section">
-                    <text class="follow-up-title">追问</text>
-                    <text class="follow-up-content">
-                        {{ evaluationProgress.followUpQuestion }}
-                    </text>
-                    <button class="follow-up-btn" @click="handleFollowUp">继续回答</button>
+                <view v-else>
+                    <!-- 原有的评估内容 -->
+                    <view class="feedback-section" v-if="evaluationProgress.feedback">
+                        <text class="feedback-title">评价</text>
+                        <text class="feedback-content">{{ evaluationProgress.feedback }}</text>
+                    </view>
+                    <view class="suggestions-section" v-if="evaluationProgress.suggestions">
+                        <text class="suggestions-title">建议</text>
+                        <text class="suggestions-content">{{ evaluationProgress.suggestions }}</text>
+                    </view>
+                    <view class="example-section" v-if="evaluationProgress.example">
+                        <text class="example-title">范例</text>
+                        <text class="example-content">{{ evaluationProgress.example }}</text>
+                    </view>
+                    <view class="follow-up-section" v-if="evaluationProgress.needFollowUp">
+                        <text class="follow-up-title">追问</text>
+                        <text class="follow-up-content">
+                            {{ evaluationProgress.followUpQuestion }}
+                        </text>
+                    </view>
                 </view>
             </view>
         </view>
 
-        <button class="back-btn" @click="goBack">返回</button>
+        <button class="follow-up-btn" @click="handleFollowUp" v-if="evaluationProgress.needFollowUp">继续回答</button>
     </view>
 </template>
 
@@ -65,12 +76,12 @@ onMounted(() => {
     const instance = getCurrentInstance()?.proxy
     const eventChannel = (instance as any)?.getOpenerEventChannel();
 
-    if (!eventChannel || !eventChannel.on) {
-        uni.switchTab({
-            url: '/pages/index/index'
-        })
-        return
-    }
+    // if (!eventChannel || !eventChannel.on) {
+    //     uni.switchTab({
+    //         url: '/pages/index/index'
+    //     })
+    //     return
+    // }
 
     eventChannel.on('evaluateAnswer', async (params: { question: string, answer: string }) => {
         try {
@@ -112,10 +123,6 @@ const handleFollowUp = () => {
             }
         })
     }
-}
-
-const goBack = () => {
-    uni.navigateBack()
 }
 </script>
 
@@ -159,6 +166,20 @@ const goBack = () => {
     font-size: 48rpx;
     color: #007AFF;
     font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20rpx;
+    padding: 20rpx 0;
+}
+
+.loading-text {
+    font-size: 32rpx;
 }
 
 .feedback-section,
@@ -238,15 +259,79 @@ const goBack = () => {
     margin-bottom: 20rpx;
 }
 
-.back-btn {
-    width: 100%;
-    height: 90rpx;
-    line-height: 90rpx;
-    background-color: #007AFF;
-    color: #fff;
-    border-radius: 45rpx;
-    font-size: 32rpx;
-    font-weight: bold;
-    margin-top: 40rpx;
+.placeholder-sections {
+    margin-top: 30rpx;
+}
+
+.placeholder-section {
+    margin-bottom: 30rpx;
+    animation: pulse 1.5s infinite;
+}
+
+.placeholder-title {
+    height: 32rpx;
+    width: 120rpx;
+    background: #f0f0f0;
+    border-radius: 8rpx;
+    margin-bottom: 20rpx;
+}
+
+.placeholder-content {
+    height: 80rpx;
+    background: #f0f0f0;
+    border-radius: 8rpx;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
+}
+
+.loading-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4rpx;
+    height: 48rpx;
+}
+
+.dot {
+    animation: dotPulse 1.4s infinite;
+    opacity: 0.6;
+    display: inline-block;
+    font-size: 48rpx;
+    line-height: 1;
+}
+
+@keyframes dotPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+.dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 </style>
