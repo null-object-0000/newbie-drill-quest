@@ -52,7 +52,7 @@ function generatePrompt(question: string, answer: string): string {
                     1. score 需综合准确性（0-40）、完整性（0-30）、清晰度（0-20）、逻辑性（0-10）评分。
                     2. 所有文本字段必须为非空中文，禁止缺失或混合其他语言。
                     3. 以面试官角度考虑该面试者是否值得追问或引导，若需要则将 needFollowUp 设置为 true，否则为 false。
-                    3. needFollowUp 为 true 时，followUpQuestion 必填且符合面试场景。
+                    3. needFollowUp 为 true 时，followUpQuestion 必须是与原问题强相关、能进一步考察候选人技术深度的追问问题，避免开放式提问。
                 `
 
     return prompt
@@ -60,14 +60,24 @@ function generatePrompt(question: string, answer: string): string {
 
 function generateParameters(prompt: string) {
     return {
-        model: 'deepseek-chat',
-        temperature: 0.7,
+        model: currentConfig.value.model,
+        temperature: currentConfig.value.temperature,
         response_format: { type: 'json_object' },
         messages: [
             { role: 'system', content: '你是一位经验丰富的技术面试官，善于评估候选人的回答并提供建设性的反馈。' },
             { role: 'user', content: prompt }
         ]
     }
+}
+
+import { currentConfig } from '@/store/config'
+
+function generateAIConfig() {
+    const config: DeepSeekConfig = {
+        baseURL: currentConfig.value.baseURL,
+        apiKey: currentConfig.value.apiKey
+    }
+    return config
 }
 
 /**
@@ -78,10 +88,7 @@ function generateParameters(prompt: string) {
  */
 async function evaluateWithRequest(question: string, answer: string): Promise<FeedbackResult> {
     return new Promise((resolve, reject) => {
-        const config: DeepSeekConfig = {
-            baseURL: 'https://api.deepseek.com/v1',
-            apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2'
-        }
+        const config: DeepSeekConfig = generateAIConfig()
         const prompt = generatePrompt(question, answer)
         const data = generateParameters(prompt)
 
@@ -137,10 +144,7 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
             })
 
             socketTask.onOpen(() => {
-                const config: DeepSeekConfig = {
-                    baseURL: 'https://api.deepseek.com/v1',
-                    apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2'
-                }
+                const config: DeepSeekConfig = generateAIConfig()
                 const prompt = generatePrompt(question, answer)
                 const data = generateParameters(prompt)
 

@@ -17,7 +17,7 @@
         <text class="menu-text">收藏题目</text>
         <text class="menu-arrow">></text>
       </view>
-      <view class="menu-item">
+      <view class="menu-item" @click="handleNavigateToConfig">
         <text class="menu-text">设置</text>
         <text class="menu-arrow">></text>
       </view>
@@ -26,7 +26,11 @@
 </template>
 
 <script setup lang="ts">
-// TODO: 实现用户信息获取和菜单功能
+const handleNavigateToConfig = () => {
+  uni.navigateTo({
+    url: '/pages/profile/config'
+  })
+}
 </script>
 
 <style>
