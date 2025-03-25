@@ -1,13 +1,13 @@
 {
   "name": "node-sse2socket",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple server-sent events to socket.io bridge",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "null_object_0000",
   "license": "ISC",
   "dependencies": {
     "openai": "^4.89.0",

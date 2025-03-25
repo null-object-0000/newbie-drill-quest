@@ -6,11 +6,13 @@ const wss = new WebSocket.Server({ port: 18780 });
 let clients = new Map(); // 使用 Map 存储客户端和其对应的 SSE 流
 let clientStates = new Map(); // 使用 Map 存储客户端的对话状态
 
-// 配置 OpenAI 客户端
-const openai = new OpenAI({
-    baseURL: 'https://api.deepseek.com/v1',
-    apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2'
-});
+// 创建 OpenAI 客户端
+function createOpenAIClient(config) {
+    return new OpenAI({
+        baseURL: config.baseURL,
+        apiKey: config.apiKey
+    });
+}
 
 // SSE 连接函数
 async function connectToSSE(ws, data) {
@@ -25,6 +27,8 @@ async function connectToSSE(ws, data) {
         clientStates.set(ws, true);
 
         const apiConfig = JSON.parse(data);
+        const { baseURL, apiKey } = apiConfig;
+        const openai = createOpenAIClient({ baseURL, apiKey });
         const stream = await openai.chat.completions.create({
             ...apiConfig,
             stream: true

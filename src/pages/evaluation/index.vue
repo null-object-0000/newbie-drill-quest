@@ -1,19 +1,38 @@
 <template>
     <view class="content">
-        <view class="evaluation-section" v-if="evaluationProgress">
+        <!-- 评估展示 -->
+        <view class="evaluation-section">
             <view class="evaluation-card">
                 <view class="score-section">
                     <text class="score-label">得分</text>
-                    <text class="score-value" v-if="evaluationProgress.score >= 0">{{ evaluationProgress.score }}</text>
-                    <text class="score-value" v-else>评估中</text>
+                    <text class="score-value">
+                        {{ evaluationProgress.score <= 0 ? '评估中' + loadingDots : evaluationProgress.score }}
+                    </text>
                 </view>
                 <view class="feedback-section" v-if="evaluationProgress.feedback">
                     <text class="feedback-title">评价</text>
-                    <text class="feedback-content">{{ evaluationProgress.feedback }}</text>
+                    <text class="feedback-content">
+                        {{ evaluationProgress.feedback }}
+                    </text>
                 </view>
                 <view class="suggestions-section" v-if="evaluationProgress.suggestions">
                     <text class="suggestions-title">建议</text>
-                    <text class="suggestions-content">{{ evaluationProgress.suggestions }}</text>
+                    <text class="suggestions-content">
+                        {{ evaluationProgress.suggestions }}
+                    </text>
+                </view>
+                <view class="example-section" v-if="evaluationProgress.example">
+                    <text class="example-title">范例</text>
+                    <text class="example-content">
+                        {{ evaluationProgress.example }}
+                    </text>
+                </view>
+                <view v-if="evaluationProgress.needFollowUp" class="follow-up-section">
+                    <text class="follow-up-title">追问</text>
+                    <text class="follow-up-content">
+                        {{ evaluationProgress.followUpQuestion }}
+                    </text>
+                    <button class="follow-up-btn" @click="handleFollowUp">继续回答</button>
                 </view>
             </view>
         </view>
@@ -23,34 +42,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, getCurrentInstance } from 'vue'
+import { ref, onMounted, onUnmounted, getCurrentInstance } from 'vue'
 import { evaluateAnswer } from '@/utils/deepseek'
+
+const loadingDots = ref('...')
+let dotsTimer: number | null = null
+
+const updateDots = () => {
+    if (loadingDots.value === '') loadingDots.value = '.'
+    else if (loadingDots.value === '.') loadingDots.value = '..'
+    else if (loadingDots.value === '..') loadingDots.value = '...'
+    else loadingDots.value = ''
+}
+
+onMounted(() => {
+    dotsTimer = setInterval(updateDots, 500)
+})
+
+onUnmounted(() => {
+    if (dotsTimer) {
+        clearInterval(dotsTimer)
+        dotsTimer = null
+    }
+})
 
 const evaluationProgress = ref<{
     score: number
     feedback: string
     suggestions: string
-} | null>(null)
+    example: string
+    needFollowUp: boolean
+    followUpQuestion?: string
+}>({
+    score: -1,
+    feedback: '',
+    suggestions: '',
+    example: '',
+    needFollowUp: false
+})
 
 onMounted(() => {
     const instance = getCurrentInstance()?.proxy
     const eventChannel = (instance as any)?.getOpenerEventChannel();
+    // 如果没有 eventChannel.on 方法，说明不是从其他页面跳转过来的
+    // 此时直接回到首页
+    if (!eventChannel || !eventChannel.on) {
+        uni.navigateBack()
+        return 
+    }
+
     eventChannel.on('evaluateAnswer', async (params: { question: string, answer: string }) => {
         try {
-            evaluationProgress.value = {
-                score: -1,
-                feedback: '',
-                suggestions: ''
-            }
-
             const result = await evaluateAnswer(
                 params.question,
                 params.answer,
                 (progress) => {
                     evaluationProgress.value = {
-                        score: progress.score || 0,
+                        score: progress.score || -1,
                         feedback: progress.feedback || '',
-                        suggestions: progress.suggestions || ''
+                        suggestions: progress.suggestions || '',
+                        example: progress.example || '',
+                        needFollowUp: progress.needFollowUp || false,
+                        followUpQuestion: progress.followUpQuestion || ''
                     }
                 }
             )
@@ -64,6 +117,20 @@ onMounted(() => {
         }
     })
 })
+
+const handleFollowUp = () => {
+    if (evaluationProgress.value?.followUpQuestion) {
+        uni.navigateTo({
+            url: '/pages/question-bank/answer',
+            success: (res) => {
+                res.eventChannel.emit('setQuestion', {
+                    question: evaluationProgress.value?.followUpQuestion,
+                    isFollowUp: true
+                })
+            }
+        })
+    }
+}
 
 const goBack = () => {
     uni.navigateBack()
@@ -109,12 +176,14 @@ const goBack = () => {
 }
 
 .feedback-section,
-.suggestions-section {
+.suggestions-section,
+.example-section {
     margin-bottom: 20rpx;
 }
 
 .feedback-title,
-.suggestions-title {
+.suggestions-title,
+.example-title {
     font-size: 28rpx;
     color: #666;
     margin-bottom: 10rpx;
@@ -122,11 +191,56 @@ const goBack = () => {
 }
 
 .feedback-content,
-.suggestions-content {
+.suggestions-content,
+.example-content {
     font-size: 30rpx;
     color: #333;
     line-height: 1.6;
     display: block;
+    transition: opacity 0.3s ease;
+}
+
+@keyframes typing {
+    from {
+        border-right: 2px solid #007AFF;
+    }
+
+    to {
+        border-right: 2px solid transparent;
+    }
+}
+
+.follow-up-section {
+    margin-top: 30rpx;
+    padding-top: 20rpx;
+    border-top: 2rpx solid #f0f0f0;
+}
+
+.follow-up-title {
+    font-size: 28rpx;
+    color: #666;
+    margin-bottom: 10rpx;
+    display: block;
+}
+
+.follow-up-content {
+    font-size: 30rpx;
+    color: #333;
+    line-height: 1.6;
+    display: block;
+    margin-bottom: 20rpx;
+}
+
+.follow-up-btn {
+    width: 100%;
+    height: 80rpx;
+    line-height: 80rpx;
+    background-color: #4CAF50;
+    color: #fff;
+    border-radius: 40rpx;
+    font-size: 30rpx;
+    font-weight: bold;
+    margin-bottom: 20rpx;
 }
 
 .back-btn {

@@ -1,10 +1,18 @@
 // DeepSeek API 配置
 const WS_URL = 'ws://localhost:18780'
 
+interface DeepSeekConfig {
+    baseURL: string
+    apiKey: string
+}
+
 interface FeedbackResult {
     score: number
     feedback: string
     suggestions: string
+    example: string
+    needFollowUp: boolean
+    followUpQuestion?: string
 }
 
 interface StreamResponse {
@@ -28,15 +36,22 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
     return new Promise((resolve, reject) => {
         try {
             let currentContent = ''
-            let currentScore = 0
-            let currentFeedback = ''
-            let currentSuggestions = ''
+
+            let current: FeedbackResult = {
+                score: 0,
+                feedback: '',
+                suggestions: '',
+                example: '',
+                needFollowUp: false,
+                followUpQuestion: ''
+            }
+
             let socketTask: UniApp.SocketTask
 
             try {
                 socketTask = uni.connectSocket({
                     url: WS_URL,
-                    complete: () => {}
+                    complete: () => { }
                 })
             } catch (error) {
                 console.error('创建WebSocket连接失败:', error)
@@ -51,27 +66,41 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
 
                             答案：${answer}
 
-                            请分段返回评估结果，每个部分都必须是合法的 JSON 格式：
+                            请以 JSON 格式返回评估结果，格式如下：
 
                             1. 首先返回分数：
-                            {"type":"score","value":0-100的整数}
+                            {"score":0-100的整数}
 
                             2. 然后返回评价：
-                            {"type":"feedback","value":"详细的评价内容"}
+                            {"score":0-100的整数,"feedback":"详细的评价内容"}
 
-                            3. 最后返回建议：
-                            {"type":"suggestions","value":"具体的改进建议"}
+                            3. 返回建议：
+                            {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议"}
+
+                            4. 返回范例答案：
+                            {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例"}
+
+                            5. 最后判断是否需要追问：
+                            {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例","needFollowUp":true,"followUpQuestion":"追问问题"}
                             
                             注意：
-                            1. 每个 JSON 对象必须独立返回
-                            2. score 必须是 0-100 的整数
-                            3. feedback 和 suggestions 必须是非空字符串
+                            1. score 必须是 0-100 的整数
+                            2. feedback 和 suggestions 必须是非空字符串且必须是中文
+                            3. needFollowUp 必须是布尔值，表示是否需要追问
+                            4. 当 needFollowUp 为 true 时，followUpQuestion 必须是非空的中文字符串，用于引导用户进一步回答
                         `
+
+                const config: DeepSeekConfig = {
+                    baseURL: 'https://api.deepseek.com/v1',
+                    apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2'
+                }
 
                 const apiConfig = {
                     model: 'deepseek-chat',
                     temperature: 0.7,
-                    max_tokens: 1000,
+                    response_format: { type: 'json_object' },
+                    baseURL: config.baseURL,
+                    apiKey: config.apiKey,
                     messages: [
                         { role: 'system', content: '你是一位经验丰富的技术面试官，善于评估候选人的回答并提供建设性的反馈。' },
                         { role: 'user', content: prompt }
@@ -87,6 +116,30 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                 })
             })
 
+            function completionContent(message: string) {
+                // 先看是不是完整的 JSON 对象，是的话直接返回
+                try {
+                    JSON.parse(message)
+                    return message
+                } catch (error) {
+                    // 如果是逗号结尾，就先去掉逗号
+                    if (message.endsWith(',')) {
+                        message = message.slice(0, -1)
+                    }
+
+                    // 不是完整的 JSON 对象，尝试完善
+                    if (message.endsWith('"')) {
+                        // 先看结尾有引号，但是没有花括号的情况，就补充花括号
+                        message += '}'
+                    } else if (!message.endsWith('"') && !message.endsWith('}')) {
+                        // 结尾没有引号也没有花括号的情况，就补充
+                        message += '"}'
+                    }
+
+                    return message
+                }
+            }
+
             socketTask.onMessage((result) => {
                 try {
                     const data = JSON.parse(result.data as string) as StreamResponse
@@ -100,32 +153,20 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                         const delta = data.choices[0].delta
                         if (delta.content) {
                             currentContent += delta.content
+                            console.log('当前内容:', currentContent)
+                            console.log('补全内容:', completionContent(currentContent))
                             try {
-                                // 尝试解析当前内容中的所有 JSON 对象
-                                const jsonMatches = currentContent.match(/\{[^\{\}]*\}/g)
-                                if (jsonMatches) {
-                                    for (const match of jsonMatches) {
-                                        const parsedResult = JSON.parse(match)
-                                        switch (parsedResult.type) {
-                                            case 'score':
-                                                currentScore = parsedResult.value || 0
-                                                break
-                                            case 'feedback':
-                                                currentFeedback = parsedResult.value || ''
-                                                break
-                                            case 'suggestions':
-                                                currentSuggestions = parsedResult.value || ''
-                                                break
-                                        }
+                                // 尝试解析当前内容中的 JSON 对象
+                                const parsedResult = JSON.parse(completionContent(currentContent))
+                                current.score = parsedResult.score || -1
+                                current.feedback = parsedResult.feedback || ''
+                                current.suggestions = parsedResult.suggestions || ''
+                                current.example = parsedResult.example || ''
+                                current.needFollowUp = parsedResult.needFollowUp || false
+                                current.followUpQuestion = parsedResult.followUpQuestion || ''
 
-                                        if (onProgress) {
-                                            onProgress({
-                                                score: currentScore,
-                                                feedback: currentFeedback,
-                                                suggestions: currentSuggestions
-                                            })
-                                        }
-                                    }
+                                if (onProgress) {
+                                    onProgress(current)
                                 }
                             } catch (parseError) {
                                 // 解析错误说明 JSON 还未完整，继续等待更多数据
@@ -136,11 +177,7 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                     // 检查是否收到结束信号
                     if (data.choices?.[0]?.finish_reason === 'stop') {
                         socketTask.close({})
-                        resolve({
-                            score: currentScore,
-                            feedback: currentFeedback,
-                            suggestions: currentSuggestions
-                        })
+                        resolve(current)
                         return
                     }
                 } catch (error) {
@@ -149,16 +186,12 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
             })
 
             socketTask.onClose(() => {
-                if (currentScore === 0 && !currentFeedback && !currentSuggestions) {
+                if (current.score === 0 && !current.feedback && !current.suggestions) {
                     reject(new Error('WebSocket 连接已关闭，未收到有效评估结果'))
                     return
                 }
 
-                resolve({
-                    score: currentScore,
-                    feedback: currentFeedback,
-                    suggestions: currentSuggestions
-                })
+                resolve(current)
             })
 
             socketTask.onError((error) => {

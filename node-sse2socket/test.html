@@ -124,6 +124,12 @@
         <input type="number" id="maxTokensInput" placeholder="最大Token数" value="1000" min="1" max="4096"
             style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
     </div>
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <input type="text" id="baseUrlInput" placeholder="API Base URL" value="https://api.deepseek.com/v1"
+            style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <input type="password" id="apiKeyInput" placeholder="API Key"
+            style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    </div>
     <textarea id="messageInput" placeholder="输入要发送给AI的消息..."></textarea>
     <button id="sendButton" disabled>发送</button>
     <div id="messages"></div>
@@ -254,6 +260,8 @@
                     model: modelSelect.value,
                     temperature: parseFloat(tempInput.value) || 0.7,
                     max_tokens: parseInt(maxTokensInput.value) || 1000,
+                    baseURL: baseUrlInput.value.trim(),
+                    apiKey: apiKeyInput.value.trim(),
                     messages: [{
                         role: 'user',
                         content: message
