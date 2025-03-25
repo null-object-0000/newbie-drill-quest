@@ -13,15 +13,21 @@
 			}
 		},
 		{
-			"path": "pages/profile/index",
+			"path": "pages/question-bank/answer",
 			"style": {
-				"navigationBarTitleText": "我的"
+				"navigationBarTitleText": "答题"
 			}
 		},
 		{
-			"path": "pages/evaluation/index",
+			"path": "pages/question-bank/evaluation",
 			"style": {
-				"navigationBarTitleText": "评估结果"
+				"navigationBarTitleText": "评估"
+			}
+		},
+		{
+			"path": "pages/profile/index",
+			"style": {
+				"navigationBarTitleText": "我的"
 			}
 		}
 	],

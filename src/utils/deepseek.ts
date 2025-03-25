@@ -26,14 +26,101 @@ interface StreamResponse {
     error?: string
 }
 
+function generatePrompt(question: string, answer: string): string {
+    const prompt = `作为面试官，请对以下面试问题的回答进行评估。
+
+                        问题：${question}
+
+                        答案：${answer}
+
+                        请以 JSON 格式返回评估结果，格式如下：
+
+                        1. 首先返回分数：
+                        {"score":0-100的整数}
+
+                        2. 然后返回评价：
+                        {"score":0-100的整数,"feedback":"详细的评价内容"}
+
+                        3. 返回建议：
+                        {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议"}
+
+                        4. 返回范例答案：
+                        {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例"}
+
+                        5. 最后判断是否需要追问：
+                        {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例","needFollowUp":true,"followUpQuestion":"追问问题"}
+                        
+                        注意：
+                        1. score 必须是 0-100 的整数
+                        2. feedback 和 suggestions 必须是非空字符串且必须是中文
+                        3. needFollowUp 必须是布尔值，表示是否需要追问
+                        4. 当 needFollowUp 为 true 时，followUpQuestion 必须是非空的中文字符串，用于引导用户进一步回答
+                    `
+
+    return prompt
+}
+
+function generateParameters(prompt: string) {
+    return {
+        model: 'deepseek-chat',
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+        messages: [
+            { role: 'system', content: '你是一位经验丰富的技术面试官，善于评估候选人的回答并提供建设性的反馈。' },
+            { role: 'user', content: prompt }
+        ]
+    }
+}
+
 /**
  * 使用 DeepSeek API 对答案进行评分和点评
  * @param question 面试问题
  * @param answer 用户答案
  * @returns 评分和反馈结果
  */
-export async function evaluateAnswer(question: string, answer: string, onProgress?: (data: Partial<FeedbackResult>) => void): Promise<FeedbackResult> {
+async function evaluateWithRequest(question: string, answer: string): Promise<FeedbackResult> {
     return new Promise((resolve, reject) => {
+        const config: DeepSeekConfig = {
+            baseURL: 'https://api.deepseek.com/v1',
+            apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2'
+        }
+        const prompt = generatePrompt(question, answer)
+        const data = generateParameters(prompt)
+
+        uni.request({
+            url: `${config.baseURL}/chat/completions`,
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${config.apiKey}`
+            },
+            data,
+            success: (res) => {
+                try {
+                    const data = res.data as any
+                    const content = data.choices[0].message.content
+                    const result = JSON.parse(content)
+                    resolve({
+                        score: result.score || 0,
+                        feedback: result.feedback || '',
+                        suggestions: result.suggestions || '',
+                        example: result.example || '',
+                        needFollowUp: result.needFollowUp || false,
+                        followUpQuestion: result.followUpQuestion || ''
+                    })
+                } catch (error) {
+                    reject(new Error('解析评估结果失败'))
+                }
+            },
+            fail: (error) => {
+                reject(new Error('请求评估失败'))
+            }
+        })
+    })
+}
+
+export async function evaluateAnswer(question: string, answer: string, onProgress?: (data: Partial<FeedbackResult>) => void): Promise<FeedbackResult> {
+    return new Promise(async (resolve, reject) => {
         try {
             let currentContent = ''
 
@@ -46,65 +133,23 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                 followUpQuestion: ''
             }
 
-            let socketTask: UniApp.SocketTask
-
-            try {
-                socketTask = uni.connectSocket({
-                    url: WS_URL,
-                    complete: () => { }
-                })
-            } catch (error) {
-                console.error('创建WebSocket连接失败:', error)
-                reject(new Error('创建WebSocket连接失败'))
-                return
-            }
+            let socketTask: UniApp.SocketTask = uni.connectSocket({
+                url: WS_URL,
+                complete: () => { }
+            })
 
             socketTask.onOpen(() => {
-                const prompt = `作为面试官，请对以下面试问题的回答进行评估。
-
-                            问题：${question}
-
-                            答案：${answer}
-
-                            请以 JSON 格式返回评估结果，格式如下：
-
-                            1. 首先返回分数：
-                            {"score":0-100的整数}
-
-                            2. 然后返回评价：
-                            {"score":0-100的整数,"feedback":"详细的评价内容"}
-
-                            3. 返回建议：
-                            {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议"}
-
-                            4. 返回范例答案：
-                            {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例"}
-
-                            5. 最后判断是否需要追问：
-                            {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例","needFollowUp":true,"followUpQuestion":"追问问题"}
-                            
-                            注意：
-                            1. score 必须是 0-100 的整数
-                            2. feedback 和 suggestions 必须是非空字符串且必须是中文
-                            3. needFollowUp 必须是布尔值，表示是否需要追问
-                            4. 当 needFollowUp 为 true 时，followUpQuestion 必须是非空的中文字符串，用于引导用户进一步回答
-                        `
-
                 const config: DeepSeekConfig = {
                     baseURL: 'https://api.deepseek.com/v1',
                     apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2'
                 }
+                const prompt = generatePrompt(question, answer)
+                const data = generateParameters(prompt)
 
                 const apiConfig = {
-                    model: 'deepseek-chat',
-                    temperature: 0.7,
-                    response_format: { type: 'json_object' },
+                    ...data,
                     baseURL: config.baseURL,
-                    apiKey: config.apiKey,
-                    messages: [
-                        { role: 'system', content: '你是一位经验丰富的技术面试官，善于评估候选人的回答并提供建设性的反馈。' },
-                        { role: 'user', content: prompt }
-                    ]
+                    apiKey: config.apiKey
                 }
 
                 socketTask.send({
@@ -185,22 +230,21 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                 }
             })
 
-            socketTask.onClose(() => {
-                if (current.score === 0 && !current.feedback && !current.suggestions) {
-                    reject(new Error('WebSocket 连接已关闭，未收到有效评估结果'))
-                    return
-                }
-
+            socketTask.onError(async (error) => {
+                console.warn('WebSocket 连接失败，降级使用 HTTP 请求:', error)
+                current = await evaluateWithRequest(question, answer)
+                console.warn('降级使用 HTTP 请求结果:', current)
+                onProgress && onProgress(current)
                 resolve(current)
             })
 
-            socketTask.onError((error) => {
-                console.error('WebSocket 错误:', error)
-                reject(new Error('WebSocket 连接错误'))
+            socketTask.onClose(() => {
+                if (current.score >= 0 && !current.feedback && !current.suggestions) {
+                    resolve(current)
+                }
             })
         } catch (error) {
-            console.error('评估答案时出错:', error)
-            reject(new Error('评估答案失败'))
+            reject(error)
         }
     })
 }

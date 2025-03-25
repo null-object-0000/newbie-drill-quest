@@ -1,0 +1,242 @@
+<template>
+    <view class="content">
+        <view class="quiz-section">
+            <view class="question-card">
+                <text class="question-text">{{ currentQuestion?.content }}</text>
+                <view class="question-info" v-if="!isFollowUp">
+                    <text class="difficulty" :class="currentQuestion?.difficulty">
+                        {{ currentQuestion?.difficulty }}
+                    </text>
+                    <text class="category">{{ currentQuestion?.category }}</text>
+                </view>
+            </view>
+
+            <view class="answer-options">
+                <button class="answer-btn text" @click="selectAnswerMode('text')">
+                    <text class="btn-text">文字回答</text>
+                </button>
+                <button class="answer-btn voice" disabled @click="selectAnswerMode('voice')">
+                    <text class="btn-text">语音回答</text>
+                </button>
+            </view>
+
+            <view class="answer-section" v-if="selectedMode === 'text'">
+                <textarea class="answer-input" v-model="textAnswer" placeholder="请输入你的答案..." :maxlength="-1" />
+                <button class="submit-btn" @click="submitAnswer">提交答案</button>
+            </view>
+
+            <view class="answer-section" v-else-if="selectedMode === 'voice'">
+                <button class="record-btn" :class="{ recording: isRecording }" @touchstart="startRecording"
+                    @touchend="stopRecording">
+                    {{ isRecording ? '松开结束录音' : '按住开始录音' }}
+                </button>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, getCurrentInstance } from 'vue'
+
+interface CurrentQuestion {
+    content: string
+    difficulty?: string
+    category?: string
+}
+
+const currentQuestion = ref<CurrentQuestion | null>(null)
+const selectedMode = ref('')
+const textAnswer = ref('')
+const isRecording = ref(false)
+const isFollowUp = ref(false)
+
+onMounted(() => {
+    const instance = getCurrentInstance()?.proxy
+    const eventChannel = (instance as any)?.getOpenerEventChannel()
+
+    if (!eventChannel || !eventChannel.on) {
+        uni.switchTab({
+            url: '/pages/index/index'
+        })
+        return
+    }
+
+    // 监听页面传参
+    eventChannel.on('setQuestion', (params: { question: string, difficulty?: string, category?: string, isFollowUp?: boolean }) => {
+        currentQuestion.value = {
+            content: params.question,
+            difficulty: params.difficulty,
+            category: params.category
+        }
+        isFollowUp.value = params.isFollowUp || false
+        // 默认选择文字回答模式
+        selectAnswerMode('text')
+    })
+})
+
+const selectAnswerMode = (mode: 'text' | 'voice') => {
+    selectedMode.value = mode
+}
+
+const submitAnswer = async () => {
+    if (!currentQuestion.value || !textAnswer.value.trim()) {
+        uni.showToast({
+            title: '请输入答案',
+            icon: 'none'
+        })
+        return
+    }
+
+    uni.navigateTo({
+        url: '/pages/question-bank/evaluation',
+        success: (res) => {
+            res.eventChannel.emit('evaluateAnswer', {
+                question: currentQuestion.value?.content,
+                answer: textAnswer.value
+            })
+        }
+    })
+}
+
+const startRecording = () => {
+    isRecording.value = true
+    // TODO: 实现录音功能
+}
+
+const stopRecording = () => {
+    isRecording.value = false
+    // TODO: 停止录音并处理录音文件
+}
+</script>
+
+<style>
+.content {
+    padding: 40rpx;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.quiz-section {
+    padding: 20rpx;
+}
+
+.question-card {
+    background-color: #fff;
+    padding: 40rpx;
+    border-radius: 20rpx;
+    margin-bottom: 40rpx;
+}
+
+.question-text {
+    font-size: 32rpx;
+    color: #333;
+    line-height: 1.6;
+    margin-bottom: 20rpx;
+    display: block;
+}
+
+.question-info {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+}
+
+.difficulty {
+    font-size: 24rpx;
+    padding: 4rpx 16rpx;
+    border-radius: 20rpx;
+    color: #fff;
+}
+
+.difficulty.easy {
+    background-color: #4CAF50;
+}
+
+.difficulty.medium {
+    background-color: #FF9800;
+}
+
+.difficulty.hard {
+    background-color: #F44336;
+}
+
+.category {
+    padding: 4rpx 12rpx;
+    border-radius: 8rpx;
+    font-size: 24rpx;
+    background-color: #f0f0f0;
+    color: #666;
+}
+
+.answer-options {
+    display: flex;
+    gap: 20rpx;
+    margin-bottom: 30rpx;
+}
+
+.answer-btn {
+  width: 45%;
+  height: 90rpx;
+  line-height: 90rpx;
+  border-radius: 45rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.answer-btn.text {
+  background-color: #007AFF;
+  color: #fff;
+}
+
+.answer-btn.voice {
+  background-color: #fff;
+  color: #007AFF;
+  border: 2rpx solid #007AFF;
+}
+
+.answer-section {
+    background-color: #fff;
+    padding: 30rpx;
+    border-radius: 20rpx;
+    box-sizing: border-box;
+}
+
+.answer-input {
+    width: 100%;
+    min-height: 300rpx;
+    padding: 20rpx;
+    font-size: 28rpx;
+    color: #333;
+    line-height: 1.6;
+    background-color: #f9f9f9;
+    border-radius: 10rpx;
+    margin-bottom: 20rpx;
+    box-sizing: border-box;
+}
+
+.submit-btn {
+    width: 100%;
+    height: 80rpx;
+    line-height: 80rpx;
+    background-color: #007AFF;
+    color: #fff;
+    border-radius: 40rpx;
+    font-size: 30rpx;
+    font-weight: bold;
+}
+
+.record-btn {
+    width: 100%;
+    height: 120rpx;
+    line-height: 120rpx;
+    background-color: #4CAF50;
+    color: #fff;
+    border-radius: 60rpx;
+    font-size: 32rpx;
+    font-weight: bold;
+}
+
+.record-btn.recording {
+    background-color: #F44336;
+}
+</style>

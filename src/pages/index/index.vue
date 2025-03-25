@@ -1,6 +1,6 @@
 <template>
   <view class="content">
-    <view class="welcome-section" v-if="!currentQuestion?.content">
+    <view class="welcome-section">
       <image class="logo" src="/static/logo.png" />
       <view class="text-area">
         <text class="title">生存挑战</text>
@@ -8,63 +8,12 @@
       </view>
       <button class="start-btn" @click="startQuiz">开始挑战</button>
     </view>
-
-    <view class="quiz-section" v-else>
-      <view class="question-card">
-        <text class="question-text">{{ currentQuestion?.content }}</text>
-        <view class="question-info">
-          <text class="difficulty" :class="currentQuestion?.difficulty">{{ currentQuestion?.difficulty }}</text>
-          <text class="category">{{ currentQuestion?.category }}</text>
-        </view>
-      </view>
-
-      <view class="answer-options">
-        <button class="answer-btn text" @click="selectAnswerMode('text')">
-          <text class="btn-text">文字回答</text>
-        </button>
-        <button class="answer-btn voice" disabled @click="selectAnswerMode('voice')">
-          <text class="btn-text">语音回答</text>
-        </button>
-      </view>
-
-      <view class="answer-section" v-if="selectedMode === 'text'">
-        <textarea
-          class="answer-input"
-          v-model="textAnswer"
-          placeholder="请输入你的答案..."
-        />
-        <button class="submit-btn" @click="submitAnswer">提交答案</button>
-      </view>
-
-      <view class="answer-section" v-else-if="selectedMode === 'voice'">
-        <button 
-          class="record-btn" 
-          :class="{ recording: isRecording }"
-          @touchstart="startRecording"
-          @touchend="stopRecording"
-        >
-          {{ isRecording ? '松开结束录音' : '按住开始录音' }}
-        </button>
-      </view>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { questionBanks } from '@/mock/questions'
 import { getActiveQuestionBankId } from '@/store'
-
-interface CurrentQuestion {
-  content: string
-  difficulty: string
-  category: string
-}
-
-const currentQuestion = ref<CurrentQuestion | null>(null)
-const selectedMode = ref('')
-const textAnswer = ref('')
-const isRecording = ref(false)
 
 const startQuiz = () => {
   const activeId = getActiveQuestionBankId()
@@ -90,50 +39,17 @@ const startQuiz = () => {
   const randomQuestionIndex = Math.floor(Math.random() * activeBank.questions.length)
   const selectedQuestion = activeBank.questions[randomQuestionIndex]
   
-  currentQuestion.value = {
-    content: selectedQuestion.content,
-    difficulty: selectedQuestion.difficulty,
-    category: selectedQuestion.category
-  }
-
-  // 默认选择文字回答模式
-  selectAnswerMode('text')
-}
-
-const selectAnswerMode = (mode: 'text' | 'voice') => {
-  selectedMode.value = mode
-}
-
-const submitAnswer = async () => {
-  if (!currentQuestion.value || !textAnswer.value.trim()) {
-    uni.showToast({
-      title: '请输入答案',
-      icon: 'none'
-    })
-    return
-  }
-
-  console.log('提交答案:', textAnswer.value)
-
+  // 跳转到答题页面
   uni.navigateTo({
-    url: '/pages/evaluation/index',
+    url: '/pages/question-bank/answer',
     success: (res) => {
-      res.eventChannel.emit('evaluateAnswer', {
-        question: currentQuestion.value?.content,
-        answer: textAnswer.value
+      res.eventChannel.emit('setQuestion', {
+        question: selectedQuestion.content,
+        difficulty: selectedQuestion.difficulty,
+        category: selectedQuestion.category
       })
     }
   })
-}
-
-const startRecording = () => {
-  isRecording.value = true
-  // TODO: 实现录音功能
-}
-
-const stopRecording = () => {
-  isRecording.value = false
-  // TODO: 停止录音并处理录音文件
 }
 </script>
 
@@ -186,179 +102,5 @@ const stopRecording = () => {
   border-radius: 45rpx;
   font-size: 32rpx;
   font-weight: bold;
-}
-
-.quiz-section {
-  padding: 20rpx;
-}
-
-.question-card {
-  background-color: #fff;
-  padding: 40rpx;
-  border-radius: 20rpx;
-  margin-bottom: 40rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-}
-
-.question-text {
-  font-size: 34rpx;
-  color: #333;
-  line-height: 1.5;
-  margin-bottom: 20rpx;
-}
-
-.question-info {
-  display: flex;
-  gap: 20rpx;
-  margin-top: 10rpx;
-}
-
-.difficulty {
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-}
-
-.difficulty.easy {
-  background-color: #95de64;
-  color: #fff;
-}
-
-.difficulty.medium {
-  background-color: #ffc53d;
-  color: #fff;
-}
-
-.difficulty.hard {
-  background-color: #ff4d4f;
-  color: #fff;
-}
-
-.category {
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-  background-color: #f0f0f0;
-  color: #666;
-}
-
-.answer-options {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 40rpx;
-}
-
-.answer-btn {
-  width: 45%;
-  height: 90rpx;
-  line-height: 90rpx;
-  border-radius: 45rpx;
-  font-size: 32rpx;
-  font-weight: bold;
-}
-
-.answer-btn.text {
-  background-color: #007AFF;
-  color: #fff;
-}
-
-.answer-btn.voice {
-  background-color: #fff;
-  color: #007AFF;
-  border: 2rpx solid #007AFF;
-}
-
-.answer-section {
-  margin-top: 40rpx;
-}
-
-.answer-input {
-  width: 100%;
-  height: 300rpx;
-  background-color: #fff;
-  border-radius: 20rpx;
-  padding: 20rpx;
-  font-size: 28rpx;
-  margin-bottom: 30rpx;
-}
-
-.submit-btn {
-  width: 100%;
-  height: 90rpx;
-  line-height: 90rpx;
-  background-color: #007AFF;
-  color: #fff;
-  border-radius: 45rpx;
-  font-size: 32rpx;
-  font-weight: bold;
-}
-
-.record-btn {
-  width: 100%;
-  height: 120rpx;
-  line-height: 120rpx;
-  background-color: #fff;
-  color: #007AFF;
-  border: 2rpx solid #007AFF;
-  border-radius: 60rpx;
-  font-size: 32rpx;
-  font-weight: bold;
-}
-
-.record-btn.recording {
-  background-color: #007AFF;
-  color: #fff;
-}
-
-.evaluation-section {
-  margin-top: 40rpx;
-}
-
-.evaluation-card {
-  background-color: #fff;
-  padding: 40rpx;
-  border-radius: 20rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-}
-
-.score-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 30rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 2rpx solid #f0f0f0;
-}
-
-.score-label {
-  font-size: 32rpx;
-  color: #333;
-}
-
-.score-value {
-  font-size: 48rpx;
-  color: #007AFF;
-  font-weight: bold;
-}
-
-.feedback-section,
-.suggestions-section {
-  margin-bottom: 20rpx;
-}
-
-.feedback-title,
-.suggestions-title {
-  font-size: 28rpx;
-  color: #666;
-  margin-bottom: 10rpx;
-  display: block;
-}
-
-.feedback-content,
-.suggestions-content {
-  font-size: 30rpx;
-  color: #333;
-  line-height: 1.6;
-  display: block;
 }
 </style>

@@ -6,7 +6,7 @@
                 <view class="score-section">
                     <text class="score-label">得分</text>
                     <text class="score-value">
-                        {{ evaluationProgress.score <= 0 ? '评估中' + loadingDots : evaluationProgress.score }}
+                        {{ evaluationProgress.score < 0 ? '评估中' + loadingDots : evaluationProgress.score }}
                     </text>
                 </view>
                 <view class="feedback-section" v-if="evaluationProgress.feedback">
@@ -84,11 +84,12 @@ const evaluationProgress = ref<{
 onMounted(() => {
     const instance = getCurrentInstance()?.proxy
     const eventChannel = (instance as any)?.getOpenerEventChannel();
-    // 如果没有 eventChannel.on 方法，说明不是从其他页面跳转过来的
-    // 此时直接回到首页
+
     if (!eventChannel || !eventChannel.on) {
-        uni.navigateBack()
-        return 
+        uni.switchTab({
+            url: '/pages/index/index'
+        })
+        return
     }
 
     eventChannel.on('evaluateAnswer', async (params: { question: string, answer: string }) => {
@@ -110,6 +111,7 @@ onMounted(() => {
 
             evaluationProgress.value = result
         } catch (error) {
+            console.log('评估失败', error)
             uni.showToast({
                 title: '评估失败，请重试',
                 icon: 'none'
