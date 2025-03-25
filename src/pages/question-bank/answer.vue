@@ -20,11 +20,13 @@
                 </button>
             </view>
 
-            <view v-if="selectedMode === 'text'">
+            <view class="answer-container" v-if="selectedMode === 'text'">
                 <view class="answer-section">
                     <textarea class="answer-input" v-model="textAnswer" placeholder="请输入你的答案..." :maxlength="-1" />
                 </view>
-                <button class="submit-btn" @click="submitAnswer">提交答案</button>
+                <view class="submit-container">
+                    <button class="submit-btn" @click="submitAnswer">提交答案</button>
+                </view>
             </view>
 
             <view class="answer-section" v-else-if="selectedMode === 'voice'">
@@ -126,6 +128,14 @@ const stopRecording = () => {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+.answer-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
 }
 
 .answer-section {
@@ -136,22 +146,43 @@ const stopRecording = () => {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 20rpx;
 }
 
 .answer-input {
     width: 100%;
     flex: 1;
-    min-height: 200rpx;
-    max-height: 100%;
     padding: 20rpx;
     font-size: 28rpx;
     color: #333;
     line-height: 1.6;
     background-color: #f9f9f9;
     border-radius: 10rpx;
-    margin-bottom: 20rpx;
     box-sizing: border-box;
     resize: none;
+}
+
+.submit-container {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20rpx;
+    background-color: #fff;
+    box-shadow: 0 -4rpx 10rpx rgba(0, 0, 0, 0.05);
+    z-index: 1;
+}
+
+.submit-btn {
+    width: 100%;
+    height: 80rpx;
+    line-height: 80rpx;
+    background-color: #007AFF;
+    color: #fff;
+    border-radius: 40rpx;
+    font-size: 30rpx;
+    font-weight: bold;
 }
 
 .question-card {
