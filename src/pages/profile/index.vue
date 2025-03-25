@@ -31,9 +31,10 @@
 
 <style>
 .container {
-  padding: 20rpx;
+  height: 100vh;
   background-color: #f5f5f5;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .user-info {

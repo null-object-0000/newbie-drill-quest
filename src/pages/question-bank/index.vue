@@ -76,13 +76,13 @@ const handleImport = async () => {
 
 <style>
 .container {
-  padding: 30rpx;
   background-color: #f8f9fa;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
-  margin: 20rpx 0 30rpx;
+  margin: 20rpx 0;
   display: flex;
   justify-content: flex-end;
 }

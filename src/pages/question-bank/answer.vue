@@ -20,8 +20,10 @@
                 </button>
             </view>
 
-            <view class="answer-section" v-if="selectedMode === 'text'">
-                <textarea class="answer-input" v-model="textAnswer" placeholder="请输入你的答案..." :maxlength="-1" />
+            <view v-if="selectedMode === 'text'">
+                <view class="answer-section">
+                    <textarea class="answer-input" v-model="textAnswer" placeholder="请输入你的答案..." :maxlength="-1" />
+                </view>
                 <button class="submit-btn" @click="submitAnswer">提交答案</button>
             </view>
 
@@ -111,13 +113,45 @@ const stopRecording = () => {
 
 <style>
 .content {
-    padding: 40rpx;
-    min-height: 100vh;
+    padding: 20rpx;
+    height: 100vh;
     background-color: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
 }
 
 .quiz-section {
+    padding: 10rpx;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.answer-section {
+    background-color: #fff;
     padding: 20rpx;
+    border-radius: 20rpx;
+    box-sizing: border-box;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.answer-input {
+    width: 100%;
+    flex: 1;
+    min-height: 200rpx;
+    max-height: 100%;
+    padding: 20rpx;
+    font-size: 28rpx;
+    color: #333;
+    line-height: 1.6;
+    background-color: #f9f9f9;
+    border-radius: 10rpx;
+    margin-bottom: 20rpx;
+    box-sizing: border-box;
+    resize: none;
 }
 
 .question-card {
@@ -125,6 +159,8 @@ const stopRecording = () => {
     padding: 40rpx;
     border-radius: 20rpx;
     margin-bottom: 40rpx;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .question-text {
@@ -175,23 +211,23 @@ const stopRecording = () => {
 }
 
 .answer-btn {
-  width: 45%;
-  height: 90rpx;
-  line-height: 90rpx;
-  border-radius: 45rpx;
-  font-size: 32rpx;
-  font-weight: bold;
+    width: 45%;
+    height: 90rpx;
+    line-height: 90rpx;
+    border-radius: 45rpx;
+    font-size: 32rpx;
+    font-weight: bold;
 }
 
 .answer-btn.text {
-  background-color: #007AFF;
-  color: #fff;
+    background-color: #007AFF;
+    color: #fff;
 }
 
 .answer-btn.voice {
-  background-color: #fff;
-  color: #007AFF;
-  border: 2rpx solid #007AFF;
+    background-color: #fff;
+    color: #007AFF;
+    border: 2rpx solid #007AFF;
 }
 
 .answer-section {
@@ -199,11 +235,15 @@ const stopRecording = () => {
     padding: 30rpx;
     border-radius: 20rpx;
     box-sizing: border-box;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .answer-input {
     width: 100%;
-    min-height: 300rpx;
+    flex: 1;
+    min-height: 350rpx;
     padding: 20rpx;
     font-size: 28rpx;
     color: #333;
@@ -212,6 +252,7 @@ const stopRecording = () => {
     border-radius: 10rpx;
     margin-bottom: 20rpx;
     box-sizing: border-box;
+    resize: none;
 }
 
 .submit-btn {
@@ -223,6 +264,7 @@ const stopRecording = () => {
     border-radius: 40rpx;
     font-size: 30rpx;
     font-weight: bold;
+    margin-top: 20rpx;
 }
 
 .record-btn {

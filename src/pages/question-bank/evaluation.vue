@@ -142,12 +142,17 @@ const goBack = () => {
 <style>
 .content {
     padding: 40rpx;
-    min-height: 100vh;
+    height: 100vh;
     background-color: #f5f5f5;
+    display: flex;
+    flex-direction: column;
 }
 
 .evaluation-section {
     margin-top: 40rpx;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .evaluation-card {
@@ -155,6 +160,10 @@ const goBack = () => {
     padding: 40rpx;
     border-radius: 20rpx;
     box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
 .score-section {

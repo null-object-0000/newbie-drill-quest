@@ -55,17 +55,18 @@ const startQuiz = () => {
 
 <style>
 .content {
-  padding: 40rpx;
-  min-height: 100vh;
+  height: 100vh;
   background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
 }
 
 .welcome-section {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 100rpx;
 }
 
 .logo {
