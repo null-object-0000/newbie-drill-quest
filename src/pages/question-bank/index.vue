@@ -96,7 +96,6 @@ const handleImport = async () => {
 // 组件挂载时加载题库列表
 onMounted(() => {
   loadQuestionBanks()
-  console.log('activeId', activeId.value, activeQuestionBankId.value)
 })
 </script>
 

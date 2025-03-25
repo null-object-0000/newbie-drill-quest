@@ -35,27 +35,7 @@ export const questionBanks: QuestionBank[] = [
       }
     ]
   },
-  {
-    id: 'java-jvm',
-    name: 'Java 虚拟机',
-    description: 'JVM 原理及调优相关面试题',
-    questions: [
-      {
-        id: 'jvm-1',
-        content: '请描述 JVM 的内存结构',
-        difficulty: 'hard',
-        category: 'java-jvm',
-        answer: 'JVM内存结构包括：\n1. 堆区：存储对象实例\n2. 方法区：存储类信息、常量、静态变量\n3. 虚拟机栈：存储局部变量表、操作数栈等\n4. 本地方法栈：执行Native方法\n5. 程序计数器：记录当前线程执行位置'
-      },
-      {
-        id: 'jvm-2',
-        content: '什么是 JVM 垃圾回收机制？',
-        difficulty: 'medium',
-        category: 'java-jvm',
-        answer: 'JVM垃圾回收机制：\n1. 判断对象是否存活（引用计数/可达性分析）\n2. 垃圾收集算法（标记-清除、复制、标记-整理）\n3. 垃圾收集器（Serial、Parallel、CMS、G1等）\n4. 内存分代（新生代、老年代）'
-      }
-    ]
-  },
+  { "id": "java-jvm", "name": "Java 虚拟机", "description": "JVM 原理及调优相关面试题", "questions": [{ "id": "java-jvm-0", "content": "什么是 JVM？它的核心作用是什么？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-1", "content": "JVM 的内存区域是如何划分的？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-2", "content": "什么是内存溢出（OOM）？常见的 OOM 场景有哪些？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-3", "content": "堆（Heap）和方法区（Method Area）的区别是什么？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-4", "content": "什么是直接内存（Direct Memory）？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-5", "content": "堆内存中有哪些可调整的参数？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-6", "content": "直接内存和堆内存有什么不同？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-7", "content": "如何使用直接内存？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-8", "content": "Java 中类加载过程是怎样的？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-9", "content": "双亲委派模型是什么？为何需要？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-10", "content": "有哪些类加载器？他们分别加载什么类？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-11", "content": "什么时候会触发类的加载？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-12", "content": "如何破坏双亲委派机制？为何要破坏？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-13", "content": "Tomcat 是如何打破双清委派的？为何要破坏？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-14", "content": "如何自定义一个类加载器？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-15", "content": "堆内存分代机制是怎样的？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-16", "content": "Java 中的对象创建过程是怎样的？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-17", "content": "对象的访问定位方式有哪些？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-18", "content": "堆内存分代机制是怎样的？为什么要这么分？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-19", "content": "Java 8 做了什么调整？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-20", "content": "对象在内存中是如何储存的？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-21", "content": "对象头信息里有什么？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-22", "content": "什么时候对象会进入老年代？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-23", "content": "栈和堆的区别？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-24", "content": "为什么要有两个 Survivor 区？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-25", "content": "如何调整分区大小？默认比例？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-26", "content": "方法区（永久代/元空间）会发生垃圾回收吗？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-27", "content": "垃圾回收有哪些算法？各有什么特点？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-28", "content": "哪些对象可以被作为 GC Roots？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-29", "content": "强引用、软引用、弱引用、虚引用的区别和应用场景是什么？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-30", "content": "如何判断一个对象是否“存活”？", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-31", "content": "如何判断一个常量是废弃常量?", "answer": "", "difficulty": "medium", "category": "java-jvm" }, { "id": "java-jvm-32", "content": "如何判断一个类是无用类？", "answer": "", "difficulty": "medium", "category": "java-jvm" }] },
   {
     id: 'redis',
     name: 'Redis',

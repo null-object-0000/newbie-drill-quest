@@ -12,11 +12,10 @@
 </template>
 
 <script setup lang="ts">
-import { questionBanks } from '@/mock/questions'
-import { getActiveQuestionBankId } from '@/store'
+import { activeQuestionBankId, questionBankList } from '@/store/config'
 
 const startQuiz = () => {
-  const activeId = getActiveQuestionBankId()
+  const activeId = activeQuestionBankId.value
   if (!activeId) {
     uni.showToast({
       title: '请先激活题库',
@@ -26,7 +25,7 @@ const startQuiz = () => {
   }
 
   // 获取激活的题库
-  const activeBank = questionBanks.find(bank => bank.id === activeId)
+  const activeBank = questionBankList.value.find(bank => bank.id === activeId)
   if (!activeBank) {
     uni.showToast({
       title: '题库不存在',

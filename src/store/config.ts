@@ -54,11 +54,9 @@ export const loadActiveQuestionBank = () => {
     uni.getStorage({
         key: 'active_question_bank',
         success: (res) => {
-            console.log('loadActiveQuestionBank', res)
             activeQuestionBankId.value = res.data as string
         },
         fail: () => {
-            console.log('loadActiveQuestionBank fail')
             // 如果没有本地存储，使用第一个题库
             if (questionBankList.value.length > 0) {
                 activeQuestionBankId.value = questionBankList.value[0].id
@@ -115,7 +113,6 @@ export const resetAIConfig = () => {
 }
 
 export const loadConfig = () => {
-    console.log('loadConfig')
     loadActiveQuestionBank()
     loadAIConfig()
 }

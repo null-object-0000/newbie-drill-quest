@@ -99,6 +99,7 @@ async function evaluateWithRequest(question: string, answer: string): Promise<Fe
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${config.apiKey}`
             },
+            timeout: 3 * 60 * 1000,
             data,
             success: (res) => {
                 try {
@@ -200,8 +201,6 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                         const delta = data.choices[0].delta
                         if (delta.content) {
                             currentContent += delta.content
-                            console.log('当前内容:', currentContent)
-                            console.log('补全内容:', completionContent(currentContent))
                             try {
                                 // 尝试解析当前内容中的 JSON 对象
                                 const parsedResult = JSON.parse(completionContent(currentContent))

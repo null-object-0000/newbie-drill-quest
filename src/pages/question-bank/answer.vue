@@ -261,6 +261,11 @@ const stopRecording = () => {
     border: 2rpx solid #007AFF;
 }
 
+.answer-btn.voice.disabled {
+    color: #ccc;
+    border-color: #ccc;
+}
+
 .answer-section {
     background-color: #fff;
     padding: 30rpx;

@@ -99,7 +99,7 @@ onMounted(() => {
 
             evaluationProgress.value = result
         } catch (error) {
-            console.log('评估失败', error)
+            console.error('评估失败', error)
             uni.showToast({
                 title: '评估失败，请重试',
                 icon: 'none'
@@ -253,6 +253,7 @@ const handleFollowUp = () => {
     border-radius: 40rpx;
     font-size: 30rpx;
     font-weight: bold;
+    margin-top: 20rpx;
     margin-bottom: 20rpx;
 }
 
