@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { currentConfig, saveConfig, resetConfig, loadConfig } from '@/store/config'
+import { currentConfig, saveAIConfig, resetAIConfig, loadConfig } from '@/store/config'
 
 const config = ref({
     baseURL: currentConfig.value.baseURL,
@@ -38,7 +38,7 @@ const config = ref({
 })
 
 const handleSave = () => {
-    saveConfig(config.value)
+    saveAIConfig(config.value)
     uni.showToast({
         title: '配置已保存',
         icon: 'success'
@@ -46,7 +46,7 @@ const handleSave = () => {
 }
 
 const handleReset = () => {
-    resetConfig()
+    resetAIConfig()
     config.value = { ...currentConfig.value }
     uni.showToast({
         title: '已重置为默认配置',

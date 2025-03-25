@@ -1,4 +1,6 @@
 import { ref } from 'vue'
+import { questionBanks } from '@/mock/questions'
+import type { QuestionBank } from '@/mock/questions'
 
 interface DeepSeekConfig {
     baseURL: string
@@ -6,6 +8,12 @@ interface DeepSeekConfig {
     model: string
     temperature: number
 }
+
+// 题库列表
+export const questionBankList = ref<QuestionBank[]>(questionBanks)
+
+// 当前激活的题库ID
+export const activeQuestionBankId = ref<string | null>(null)
 
 // 默认配置
 const defaultConfig: DeepSeekConfig = {
@@ -18,10 +26,67 @@ const defaultConfig: DeepSeekConfig = {
 // 当前配置
 export const currentConfig = ref<DeepSeekConfig>(defaultConfig)
 
-// 从本地存储加载配置
-export const loadConfig = () => {
+// 从本地存储加载题库列表
+export const loadQuestionBanks = () => {
     uni.getStorage({
-        key: 'deepseek_config',
+        key: 'question_banks',
+        success: (res) => {
+            const banks = res.data as QuestionBank[]
+            questionBankList.value = banks
+        },
+        fail: () => {
+            // 如果没有本地存储，使用默认题库
+            questionBankList.value = questionBanks
+        }
+    })
+}
+
+// 保存题库列表到本地存储
+export const saveQuestionBanks = () => {
+    uni.setStorage({
+        key: 'question_banks',
+        data: questionBankList.value
+    })
+}
+
+// 从本地存储加载激活的题库ID
+export const loadActiveQuestionBank = () => {
+    uni.getStorage({
+        key: 'active_question_bank',
+        success: (res) => {
+            console.log('loadActiveQuestionBank', res)
+            activeQuestionBankId.value = res.data as string
+        },
+        fail: () => {
+            console.log('loadActiveQuestionBank fail')
+            // 如果没有本地存储，使用第一个题库
+            if (questionBankList.value.length > 0) {
+                activeQuestionBankId.value = questionBankList.value[0].id
+                saveActiveQuestionBank()
+            }
+        }
+    })
+}
+
+// 保存激活的题库ID到本地存储
+export const saveActiveQuestionBank = () => {
+    if (activeQuestionBankId.value) {
+        uni.setStorage({
+            key: 'active_question_bank',
+            data: activeQuestionBankId.value
+        })
+    }
+}
+
+// 激活题库
+export const activateQuestionBank = (bankId: string) => {
+    activeQuestionBankId.value = bankId
+    saveActiveQuestionBank()
+}
+
+export const loadAIConfig = () => {
+    uni.getStorage({
+        key: 'ai_config',
         success: (res) => {
             const config = res.data as DeepSeekConfig
             currentConfig.value = config
@@ -33,20 +98,24 @@ export const loadConfig = () => {
     })
 }
 
-// 保存配置到本地存储
-export const saveConfig = (config: DeepSeekConfig) => {
+export const saveAIConfig = (config: DeepSeekConfig) => {
     currentConfig.value = config
     uni.setStorage({
-        key: 'deepseek_config',
+        key: 'ai_config',
         data: config
     })
 }
 
-// 重置配置为默认值
-export const resetConfig = () => {
+export const resetAIConfig = () => {
     currentConfig.value = defaultConfig
     uni.setStorage({
-        key: 'deepseek_config',
+        key: 'ai_config',
         data: defaultConfig
     })
+}
+
+export const loadConfig = () => {
+    console.log('loadConfig')
+    loadActiveQuestionBank()
+    loadAIConfig()
 }

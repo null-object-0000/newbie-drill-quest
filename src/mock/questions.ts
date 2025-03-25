@@ -1,4 +1,4 @@
-interface Question {
+export interface Question {
   id: string
   content: string
   difficulty: 'easy' | 'medium' | 'hard'
@@ -6,7 +6,7 @@ interface Question {
   answer: string
 }
 
-interface QuestionBank {
+export interface QuestionBank {
   id: string
   name: string
   description: string

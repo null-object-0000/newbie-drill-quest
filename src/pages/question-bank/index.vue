@@ -4,13 +4,8 @@
       <button class="import-btn" @click="handleImport">导入题库</button>
     </view>
     <view class="question-bank-list">
-      <view 
-        class="bank-item" 
-        :class="{ active: bank.id === activeId }" 
-        v-for="(bank, index) in questionBanks" 
-        :key="index"
-        @click="handleBankClick(bank)"
-      >
+      <view class="bank-item" :class="{ active: bank.id === activeId }" v-for="(bank, index) in questionBanks"
+        :key="index" @click="handleBankClick(bank)">
         <view class="bank-content">
           <text class="bank-title">{{ bank.title }}</text>
           <text class="bank-description">{{ bank.description }}</text>
@@ -30,12 +25,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { questionBanks as mockQuestionBanks } from '@/mock/questions'
-import { activateQuestionBank, getActiveQuestionBankId } from '@/store'
+import { ref, onMounted } from 'vue'
+import { activeQuestionBankId, questionBankList, activateQuestionBank, loadQuestionBanks, saveQuestionBanks } from '@/store/config'
 
 // 题库列表数据
-const questionBanks = ref(mockQuestionBanks.map(bank => ({
+const questionBanks = ref(questionBankList.value.map(bank => ({
   id: bank.id,
   title: bank.name,
   description: bank.description,
@@ -47,7 +41,7 @@ const questionBanks = ref(mockQuestionBanks.map(bank => ({
 })))
 
 // 当前激活的题库ID
-const activeId = ref(getActiveQuestionBankId())
+const activeId = ref(activeQuestionBankId.value)
 
 // 点击题库处理函数
 const handleBankClick = (bank: any) => {
@@ -62,9 +56,35 @@ const handleImport = async () => {
     const { result } = await uni.scanCode({
       scanType: ['qrCode']
     })
-    
-    // TODO: 解析二维码数据并导入题库
-    console.log('扫码结果:', result)
+
+    try {
+      const importedBank = JSON.parse(result)
+      // 添加新题库到列表，若有相同的则覆盖
+      questionBankList.value = questionBankList.value.filter(bank => bank.id !== importedBank.id).concat(importedBank)
+      // 保存到本地存储
+      saveQuestionBanks()
+      // 更新显示的题库列表
+      questionBanks.value = questionBankList.value.map(bank => ({
+        id: bank.id,
+        title: bank.name,
+        description: bank.description,
+        questionCount: bank.questions.length,
+        difficulty: bank.questions.reduce((acc, q) => {
+          acc[q.difficulty] = (acc[q.difficulty] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+      }))
+
+      uni.showToast({
+        title: '导入成功',
+        icon: 'success'
+      })
+    } catch (parseError) {
+      uni.showToast({
+        title: '题库格式错误',
+        icon: 'none'
+      })
+    }
   } catch (error) {
     uni.showToast({
       title: '扫码失败',
@@ -72,6 +92,12 @@ const handleImport = async () => {
     })
   }
 }
+
+// 组件挂载时加载题库列表
+onMounted(() => {
+  loadQuestionBanks()
+  console.log('activeId', activeId.value, activeQuestionBankId.value)
+})
 </script>
 
 <style>
@@ -106,6 +132,7 @@ const handleImport = async () => {
   box-shadow: 0 2rpx 6rpx rgba(0, 122, 255, 0.15);
   opacity: 0.9;
 }
+
 .question-bank-list {
   border-radius: 24rpx;
   margin-top: 20rpx;
