@@ -6,7 +6,8 @@
                 <view class="score-section">
                     <text class="score-label">得分</text>
                     <text class="score-value">
-                        <text v-if="evaluationProgress.score < 0" class="loading-container">
+                        <text v-if="evaluationProgress.score < 0 || !evaluationProgress.feedback"
+                            class="loading-container">
                             <text class="loading-text">评估中</text>
                             <text class="loading-dots">
                                 <text class="dot" v-for="i in 3">.</text>
@@ -16,11 +17,7 @@
                     </text>
                 </view>
                 <view v-if="evaluationProgress.score < 0 || !evaluationProgress.feedback" class="placeholder-sections">
-                    <view class="placeholder-section">
-                        <view class="placeholder-title"></view>
-                        <view class="placeholder-content"></view>
-                    </view>
-                    <view class="placeholder-section">
+                    <view class="placeholder-section" v-for="i in 3">
                         <view class="placeholder-title"></view>
                         <view class="placeholder-content"></view>
                     </view>
@@ -76,12 +73,12 @@ onMounted(() => {
     const instance = getCurrentInstance()?.proxy
     const eventChannel = (instance as any)?.getOpenerEventChannel();
 
-    // if (!eventChannel || !eventChannel.on) {
-    //     uni.switchTab({
-    //         url: '/pages/index/index'
-    //     })
-    //     return
-    // }
+    if (!eventChannel || !eventChannel.on) {
+        uni.switchTab({
+            url: '/pages/index/index'
+        })
+        return
+    }
 
     eventChannel.on('evaluateAnswer', async (params: { question: string, answer: string }) => {
         try {
@@ -90,7 +87,7 @@ onMounted(() => {
                 params.answer,
                 (progress) => {
                     evaluationProgress.value = {
-                        score: progress.score || -1,
+                        score: progress.score === undefined ? -1 : progress.score,
                         feedback: progress.feedback || '',
                         suggestions: progress.suggestions || '',
                         example: progress.example || '',
@@ -312,9 +309,17 @@ const handleFollowUp = () => {
 }
 
 @keyframes dotPulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
+
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
+
 .dot:nth-child(2) {
     animation-delay: 0.2s;
 }

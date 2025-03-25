@@ -27,35 +27,33 @@ interface StreamResponse {
 }
 
 function generatePrompt(question: string, answer: string): string {
-    const prompt = `作为面试官，请对以下面试问题的回答进行评估。
+    const prompt = `作为技术面试官，请对以下回答进行评估，并严格分步返回结果：
 
-                        问题：${question}
+                    问题：${question}
+                    答案：${answer}
 
-                        答案：${answer}
-
-                        请以 JSON 格式返回评估结果，格式如下：
-
-                        1. 首先返回分数：
-                        {"score":0-100的整数}
-
-                        2. 然后返回评价：
-                        {"score":0-100的整数,"feedback":"详细的评价内容"}
-
-                        3. 返回建议：
-                        {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议"}
-
-                        4. 返回范例答案：
-                        {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例"}
-
-                        5. 最后判断是否需要追问：
-                        {"score":0-100的整数,"feedback":"详细的评价内容","suggestions":"具体的改进建议","example":"标准答案示例","needFollowUp":true,"followUpQuestion":"追问问题"}
-                        
-                        注意：
-                        1. score 必须是 0-100 的整数
-                        2. feedback 和 suggestions 必须是非空字符串且必须是中文
-                        3. needFollowUp 必须是布尔值，表示是否需要追问
-                        4. 当 needFollowUp 为 true 时，followUpQuestion 必须是非空的中文字符串，用于引导用户进一步回答
-                    `
+                    请按以下步骤返回 JSON 结果，每一步均为完整对象：
+                    1. 评分（仅含分数）：
+                    {"score": 0-100的整数}
+                    
+                    2. 评价（分数+评价）：
+                    {"score": 同上, "feedback": "面试官口吻的详细评价，中文，非空"}
+                    
+                    3. 建议（分数+评价+建议）：
+                    {"score": 同上, "feedback": 同上, "suggestions": "导师口吻的改进建议，中文，非空"}
+                    
+                    4. 范例（分数+评价+建议+范例）：
+                    {"score": 同上, "feedback": 同上, "suggestions": 同上, "example": "标准答案示例，中文，非空"}
+                    
+                    5. 最终结果（含追问判断）：
+                    {"score": 同上, "feedback": 同上, "suggestions": 同上, "example": 同上, "needFollowUp": true/false, "followUpQuestion": "不要随意追问，若需追问，此处为非空中文问题"}
+                    
+                    注意：
+                    1. score 需综合准确性（0-40）、完整性（0-30）、清晰度（0-20）、逻辑性（0-10）评分。
+                    2. 所有文本字段必须为非空中文，禁止缺失或混合其他语言。
+                    3. 以面试官角度考虑该面试者是否值得追问或引导，若需要则将 needFollowUp 设置为 true，否则为 false。
+                    3. needFollowUp 为 true 时，followUpQuestion 必填且符合面试场景。
+                `
 
     return prompt
 }
