@@ -68,10 +68,23 @@ onMounted(() => {
 .config-page {
     padding: 20px;
     background-color: #f8f8f8;
-    height: 100vh;
     box-sizing: border-box;
     overflow: hidden;
 }
+
+/* #ifdef H5 */
+.config-page {
+  height: 100%;
+}
+
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.config-page {
+  height: 100vh;
+}
+
+/* #endif */
 
 .config-form {
     background-color: #fff;

@@ -116,12 +116,25 @@ const stopRecording = () => {
 <style>
 .content {
     padding: 20rpx;
-    height: 100vh;
     background-color: #f5f5f5;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
 }
+
+/* #ifdef H5 */
+.content {
+  height: 100%;
+}
+
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.content {
+  height: 100vh;
+}
+
+/* #endif */
 
 .quiz-section {
     padding: 10rpx;

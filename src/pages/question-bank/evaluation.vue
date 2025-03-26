@@ -126,13 +126,27 @@ const handleFollowUp = () => {
 <style>
 .content {
     padding: 40rpx;
-    min-height: 100vh;
+    min-height: 100%;
     background-color: #f5f5f5;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     box-sizing: border-box;
 }
+
+/* #ifdef H5 */
+.content {
+    min-height: 100%;
+}
+
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.content {
+    min-height: 100vh;
+}
+
+/* #endif */
 
 .evaluation-section {
     margin-top: 40rpx;

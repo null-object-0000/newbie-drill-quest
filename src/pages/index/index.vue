@@ -33,11 +33,11 @@ const startQuiz = () => {
     })
     return
   }
-  
+
   // 从激活的题库中随机选择一个题目
   const randomQuestionIndex = Math.floor(Math.random() * activeBank.questions.length)
   const selectedQuestion = activeBank.questions[randomQuestionIndex]
-  
+
   // 跳转到答题页面
   uni.navigateTo({
     url: '/pages/question-bank/answer',
@@ -54,11 +54,24 @@ const startQuiz = () => {
 
 <style>
 .content {
-  height: 100vh;
   background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
 }
+
+/* #ifdef H5 */
+.content {
+  height: 100%;
+}
+
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.content {
+  height: 100vh;
+}
+
+/* #endif */
 
 .welcome-section {
   flex: 1;

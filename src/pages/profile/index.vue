@@ -35,11 +35,25 @@ const handleNavigateToConfig = () => {
 
 <style>
 .container {
-  height: 100vh;
+  height: 100%;
   background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
 }
+
+/* #ifdef H5 */
+.container {
+  height: 100%;
+}
+
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.container {
+  height: 100vh;
+}
+
+/* #endif */
 
 .user-info {
   display: flex;
