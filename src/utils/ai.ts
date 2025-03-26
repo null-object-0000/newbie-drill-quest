@@ -1,7 +1,7 @@
-// DeepSeek API 配置
+// AI API 配置
 const WS_URL = 'ws://localhost:18780'
 
-interface DeepSeekConfig {
+interface AIConfig {
     baseURL: string
     apiKey: string
 }
@@ -73,7 +73,7 @@ function generateParameters(prompt: string) {
 import { currentConfig } from '@/store/config'
 
 function generateAIConfig() {
-    const config: DeepSeekConfig = {
+    const config: AIConfig = {
         baseURL: currentConfig.value.baseURL,
         apiKey: currentConfig.value.apiKey
     }
@@ -81,14 +81,14 @@ function generateAIConfig() {
 }
 
 /**
- * 使用 DeepSeek API 对答案进行评分和点评
+ * 使用 AI API 对答案进行评分和点评
  * @param question 面试问题
  * @param answer 用户答案
  * @returns 评分和反馈结果
  */
 async function evaluateWithRequest(question: string, answer: string): Promise<FeedbackResult> {
     return new Promise((resolve, reject) => {
-        const config: DeepSeekConfig = generateAIConfig()
+        const config: AIConfig = generateAIConfig()
         const prompt = generatePrompt(question, answer)
         const data = generateParameters(prompt)
 
@@ -145,7 +145,7 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
             })
 
             socketTask.onOpen(() => {
-                const config: DeepSeekConfig = generateAIConfig()
+                const config: AIConfig = generateAIConfig()
                 const prompt = generatePrompt(question, answer)
                 const data = generateParameters(prompt)
 

@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, getCurrentInstance } from 'vue'
-import { evaluateAnswer } from '@/utils/deepseek'
+import { evaluateAnswer } from '@/utils/ai'
 
 const evaluationProgress = ref<{
     score: number

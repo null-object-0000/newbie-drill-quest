@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { questionBanks } from '@/mock/questions'
 import type { QuestionBank } from '@/mock/questions'
 
-interface DeepSeekConfig {
+interface AIConfig {
     baseURL: string
     apiKey: string
     model: string
@@ -16,7 +16,7 @@ export const questionBankList = ref<QuestionBank[]>(questionBanks)
 export const activeQuestionBankId = ref<string | null>(null)
 
 // 默认配置
-const defaultConfig: DeepSeekConfig = {
+const defaultConfig: AIConfig = {
     baseURL: 'https://api.deepseek.com/v1',
     apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2',
     model: 'deepseek-chat',
@@ -24,7 +24,7 @@ const defaultConfig: DeepSeekConfig = {
 }
 
 // 当前配置
-export const currentConfig = ref<DeepSeekConfig>(defaultConfig)
+export const currentConfig = ref<AIConfig>(defaultConfig)
 
 // 从本地存储加载题库列表
 export const loadQuestionBanks = () => {
@@ -86,7 +86,7 @@ export const loadAIConfig = () => {
     uni.getStorage({
         key: 'ai_config',
         success: (res) => {
-            const config = res.data as DeepSeekConfig
+            const config = res.data as AIConfig
             currentConfig.value = config
         },
         fail: () => {
@@ -96,7 +96,7 @@ export const loadAIConfig = () => {
     })
 }
 
-export const saveAIConfig = (config: DeepSeekConfig) => {
+export const saveAIConfig = (config: AIConfig) => {
     currentConfig.value = config
     uni.setStorage({
         key: 'ai_config',

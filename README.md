@@ -16,7 +16,20 @@
 - 跨端框架：uni-app
 - 构建工具：Vite
 - AI 能力：DeepSeek API
+- WebSocket 服务：node-sse2socket（用于处理 AI API 的流式响应）
 - 包管理器：pnpm
+
+## 项目结构
+
+```
+├── src/                # 主项目源码
+│   ├── pages/         # 页面组件
+│   ├── store/         # 状态管理
+│   └── utils/         # 工具函数
+├── node-sse2socket/   # WebSocket 服务器
+│   └── index.js       # 将 SSE 流式响应转换为 WebSocket 消息
+└── ...
+```
 
 ## 开发环境
 
