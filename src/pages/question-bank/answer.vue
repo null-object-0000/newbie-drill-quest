@@ -121,8 +121,8 @@ const startRecording = async () => {
     if (!audioRecorder.value) {
         audioRecorder.value = new AudioRecorder({
             onResult: (result) => {
-                recognitionResult.value = result
-                textAnswer.value = result
+                recognitionResult.value += result
+                textAnswer.value = recognitionResult.value
             },
             onError: (error) => {
                 uni.showToast({
