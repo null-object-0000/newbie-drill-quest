@@ -22,6 +22,8 @@ interface RecorderType {
      * 停止录音，必须在 start 之后调用
      */
     stop: (onSuccess?: (blob: Blob, duration: number) => void, onError?: (error: any) => void) => void
+    pause: () => void
+    resume: () => void
     /**
      * 关闭录音，释放录音资源，当然可以不释放，后面可以连续调用 start
      */
@@ -95,8 +97,9 @@ export class AudioRecorder {
                 bitRate: 16,
                 onProcess: (buffers: Int16Array[], powerLevel: number, bufferDuration: number, bufferSampleRate: number, newBufferIdx: number, asyncEnd: () => void) => {
                     if (this.websocket?.readyState === WebSocket.OPEN) {
-                        const audioData = new Int16Array(buffers[buffers.length - 1])
-                        this.websocket.send(audioData.buffer)
+                        for (const buffer of buffers) {
+                            this.websocket?.send(buffer)
+                        }
                     }
                 }
             }) as RecorderType
