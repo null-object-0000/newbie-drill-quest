@@ -33,12 +33,19 @@
                 <view class="recognition-result" v-if="recognitionResult">
                     <text class="result-text">{{ recognitionResult }}</text>
                 </view>
-                <button class="record-btn" v-if="isStarted" :class="{ recording: isRecording }"
-                    @click="toggleRecording">
-                    {{ isRecording ? '暂停回答' : '继续回答' }}
-                </button>
-                <button class="record-btn" v-else :class="{ recording: isRecording }" @click="startRecording">
+                <view v-if="isStarted">
+                    <button class="record-btn" :class="{ recording: isRecording }" @click="toggleRecording">
+                        {{ isRecording ? '暂停回答' : '继续回答' }}
+                    </button>
+                    <button class="record-btn stopped" @click="stopRecording">
+                        结束回答
+                    </button>
+                </view>
+                <button class="record-btn" v-else-if="!isStopped" :class="{ recording: isRecording }" @click="startRecording">
                     开始回答
+                </button>
+                <button class="record-btn" v-if="isStopped" @click="submitAnswer">
+                    提交答案
                 </button>
             </view>
         </view>
@@ -58,8 +65,11 @@ interface CurrentQuestion {
 const currentQuestion = ref<CurrentQuestion | null>(null)
 const selectedMode = ref('')
 const textAnswer = ref('')
+
 const isStarted = ref(false)
 const isRecording = ref(false)
+const isStopped = ref(false)
+
 const isFollowUp = ref(false)
 
 import { AudioRecorder } from '@/utils/audio'
@@ -100,7 +110,7 @@ const selectAnswerMode = async (mode: 'text' | 'voice') => {
         if (!audioRecorder.value) {
             audioRecorder.value = new AudioRecorder({
                 onResult: (result) => {
-                    recognitionResult.value += result
+                    recognitionResult.value = result
                     textAnswer.value = recognitionResult.value
                 },
                 onError: (error) => {
@@ -164,6 +174,29 @@ const toggleRecording = async () => {
         isRecording.value = true
         await audioRecorder.value?.resumeRecording()
     }
+}
+
+const stopRecording = async () => {
+    if (!isRecording.value) {
+        return
+    }
+
+    // 判断是否有答案，没有的话不允许停止
+    if (!textAnswer.value.trim()) {
+        uni.showToast({
+            title: '请继续答案',
+            icon: 'none'
+        }) 
+        return
+    }
+
+    if (audioRecorder.value) {
+        audioRecorder.value.stopRecording()
+        isRecording.value = false
+        isStarted.value = false
+    }
+
+    isStopped.value = true
 }
 
 onUnload(() => {
@@ -390,6 +423,11 @@ onUnload(() => {
 
 .record-btn.recording {
     background-color: #F44336;
+}
+
+.record-btn.stopped {
+    background-color: #FF9800;
+    margin-top: 20rpx;
 }
 
 .recognition-result {

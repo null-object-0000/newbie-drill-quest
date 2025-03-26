@@ -34,6 +34,18 @@ export class AudioRecorder {
     private websocket: WebSocket | null = null
     private isRecording: boolean = false
     private options: AudioRecorderOptions
+    private audioQueue: Int16Array[] = []
+    private lastDataTime: number = 0
+    private isProcessing: boolean = false
+
+    /**
+     * 所有句子
+     */
+    private results: string[] = []
+
+    public getResults() {
+        return this.results.join(' ')
+    }
 
     private recorder: RecorderType | undefined
 
@@ -41,7 +53,7 @@ export class AudioRecorder {
         this.options = options
     }
 
-    private connectWebSocket() {
+    private async connectWebSocket() {
         const { appKey, token } = currentAudioConfig.value
         if (!appKey || !token) {
             this.options.onError?.('请先配置语音识别服务的 AppKey 和 Token')
@@ -50,34 +62,51 @@ export class AudioRecorder {
         const socketUrl = `wss://nls-gateway.cn-shanghai.aliyuncs.com/ws/v1?token=${token}`
 
         this.websocket = new WebSocket(socketUrl)
-        this.websocket.onopen = () => {
-            const startTranscriptionMessage = {
-                header: {
-                    appkey: appKey,
-                    namespace: "SpeechTranscriber",
-                    name: "StartTranscription",
-                    task_id: generateUUID(),
-                    message_id: generateUUID()
-                },
-                payload: {
-                    "format": "pcm",
-                    "sample_rate": 16000,
-                    "enable_intermediate_result": true,
-                    "enable_punctuation_prediction": true,
-                    "enable_inverse_text_normalization": true
+        await new Promise<void>((resolve) => {
+            this.websocket!.onopen = () => {
+                const startTranscriptionMessage = {
+                    header: {
+                        appkey: appKey,
+                        namespace: "SpeechTranscriber",
+                        name: "StartTranscription",
+                        task_id: generateUUID(),
+                        message_id: generateUUID()
+                    },
+                    payload: {
+                        "format": "pcm",
+                        "sample_rate": 16000,
+                        "enable_intermediate_result": true,
+                        "enable_punctuation_prediction": true,
+                        "enable_inverse_text_normalization": true
+                    }
+                }
+
+                this.websocket?.send(JSON.stringify(startTranscriptionMessage))
+                console.log('发送消息', startTranscriptionMessage)
+
+                this.websocket!.onmessage = (event) => {
+                    const message = JSON.parse(event.data)
+                    if (message.header.name === "TranscriptionStarted") {
+                        console.log('语音识别服务连接成功')
+                        resolve()
+                    } else if (message.header.name === "SentenceBegin") {
+                        console.log('检测到了一句话的开始', message.payload)
+                        this.results[message.payload.index] = message.payload.result
+                    } else if (message.header.name === "TranscriptionResultChanged") {
+                        console.log('识别结果发生了变化', message.payload)
+                        this.results[message.payload.index] = message.payload.result
+                    } else if (message.header.name === "SentenceEnd") {
+                        console.log('检测到了一句话的结束', message.payload)
+                        this.results[message.payload.index] = message.payload.result
+                    } else if (message.header.name === "TranscriptionCompleted") {
+                        console.log('已停止了语音转写', message.payload)
+                    }
+
+                    console.log('收到消息', this.getResults())
+                    this.options.onResult?.(this.getResults())
                 }
             }
-
-            this.websocket?.send(JSON.stringify(startTranscriptionMessage))
-        }
-
-        this.websocket.onmessage = (event) => {
-            const message = JSON.parse(event.data)
-            if (message.header.name === "TranscriptionResultChanged" ||
-                message.header.name === "TranscriptionCompleted") {
-                this.options.onResult?.(message.payload.result)
-            }
-        }
+        })
 
         this.websocket.onerror = () => {
             this.options.onError?.('语音识别服务连接失败')
@@ -105,16 +134,11 @@ export class AudioRecorder {
                  * @param asyncEnd 
                  */
                 onProcess: (buffers: Int16Array[], powerLevel: number, bufferDuration: number, bufferSampleRate: number, newBufferIdx: number, asyncEnd: () => void) => {
-                    if (this.websocket?.readyState === WebSocket.OPEN) {
-                        for (let i = newBufferIdx; i < buffers.length; i++) {
-                            const buffer = buffers[i]
-                            const frame = new ArrayBuffer(4 + buffer.byteLength)
-                            const view = new DataView(frame)
-                            view.setUint32(0, buffer.byteLength, false) // 写入4字节数据长度
-                            new Int16Array(frame, 4).set(buffer) // 写入PCM数据
-                            this.websocket.send(frame)
-                        }
+                    for (let i = newBufferIdx; i < buffers.length; i++) {
+                        this.audioQueue.push(buffers[i])
                     }
+                    this.lastDataTime = Date.now()
+                    this.processQueue()
                 }
             }) as RecorderType
 
@@ -129,10 +153,40 @@ export class AudioRecorder {
         }
     }
 
+    private async processQueue() {
+        if (this.isProcessing) return
+        this.isProcessing = true
+
+        while (this.isRecording) {
+            if (this.audioQueue.length > 0) {
+                if (!this.websocket) {
+                    await this.connectWebSocket()
+                }
+
+                const buffer = this.audioQueue.shift()!
+                const frame = new ArrayBuffer(4 + buffer.byteLength)
+                const view = new DataView(frame)
+                view.setUint32(0, buffer.byteLength, false)
+                new Int16Array(frame, 4).set(buffer)
+                this.websocket?.send(frame)
+                this.lastDataTime = Date.now()
+            } else {
+                if (Date.now() - this.lastDataTime > 5000 && this.websocket) {
+                    this.websocket.close()
+                    this.websocket = null
+                    console.warn('超时，关闭连接')
+                }
+                await new Promise(resolve => setTimeout(resolve, 100))
+            }
+        }
+
+        this.isProcessing = false
+    }
+
     public async startRecording() {
         try {
             this.isRecording = true
-            this.connectWebSocket()
+            this.lastDataTime = Date.now()
             this.recorder?.start()
         } catch (e) {
             console.error(e)
@@ -154,7 +208,6 @@ export class AudioRecorder {
 
     public async resumeRecording() {
         this.isRecording = true
-        this.connectWebSocket()
         this.recorder?.resume()
     }
 
