@@ -33,8 +33,12 @@
                 <view class="recognition-result" v-if="recognitionResult">
                     <text class="result-text">{{ recognitionResult }}</text>
                 </view>
-                <button class="record-btn" :class="{ recording: isRecording }" @click="toggleRecording">
-                    {{ isRecording ? '暂停回答' : '开始回答' }}
+                <button class="record-btn" v-if="isStarted" :class="{ recording: isRecording }"
+                    @click="toggleRecording">
+                    {{ isRecording ? '暂停回答' : '继续回答' }}
+                </button>
+                <button class="record-btn" v-else :class="{ recording: isRecording }" @click="startRecording">
+                    开始回答
                 </button>
             </view>
         </view>
@@ -54,6 +58,7 @@ interface CurrentQuestion {
 const currentQuestion = ref<CurrentQuestion | null>(null)
 const selectedMode = ref('')
 const textAnswer = ref('')
+const isStarted = ref(false)
 const isRecording = ref(false)
 const isFollowUp = ref(false)
 
@@ -136,6 +141,19 @@ const submitAnswer = async () => {
     })
 }
 
+const startRecording = async () => {
+    if (isStarted.value) {
+        return
+    }
+
+    isStarted.value = true
+
+    if (audioRecorder.value) {
+        await audioRecorder.value.startRecording()
+        isRecording.value = true
+    }
+}
+
 const toggleRecording = async () => {
     if (isRecording.value) {
         if (audioRecorder.value) {
@@ -144,7 +162,7 @@ const toggleRecording = async () => {
         }
     } else {
         isRecording.value = true
-        await audioRecorder.value?.startRecording()
+        await audioRecorder.value?.resumeRecording()
     }
 }
 

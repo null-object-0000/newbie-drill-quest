@@ -144,14 +144,18 @@ export class AudioRecorder {
     public async pauseRecording() {
         this.isRecording = false
 
-        if (this.recorder) {
-            this.recorder.stop()
-        }
+        this.recorder?.pause()
 
         if (this.websocket) {
             this.websocket.close()
             this.websocket = null
         }
+    }
+
+    public async resumeRecording() {
+        this.isRecording = true
+        this.connectWebSocket()
+        this.recorder?.resume()
     }
 
     public stopRecording() {
