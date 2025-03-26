@@ -43,7 +43,7 @@
 			}
 		}
 	],
-	// #ifdef H5
+	// #ifdef WEB
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "Newbie Drill Quest",
@@ -52,7 +52,7 @@
 		"navigationStyle": "custom"
 	},
 	// #endif
-	// #ifndef H5
+	// #ifndef WEB
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "Newbie Drill Quest",

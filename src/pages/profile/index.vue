@@ -47,14 +47,14 @@ const handleNavigateToRecords = () => {
   flex-direction: column;
 }
 
-/* #ifdef H5 */
+/* #ifdef WEB */
 .container {
   height: 100%;
 }
 
 /* #endif */
 
-/* #ifndef H5 */
+/* #ifndef WEB */
 .container {
   height: 100vh;
 }

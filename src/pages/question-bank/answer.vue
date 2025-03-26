@@ -165,14 +165,14 @@ onUnload(() => {
     box-sizing: border-box;
 }
 
-/* #ifdef H5 */
+/* #ifdef WEB */
 .content {
     height: 100%;
 }
 
 /* #endif */
 
-/* #ifndef H5 */
+/* #ifndef WEB */
 .content {
     height: 100vh;
 }

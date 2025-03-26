@@ -158,14 +158,14 @@ const handleFollowUp = () => {
     box-sizing: border-box;
 }
 
-/* #ifdef H5 */
+/* #ifdef WEB */
 .content {
     min-height: 100%;
 }
 
 /* #endif */
 
-/* #ifndef H5 */
+/* #ifndef WEB */
 .content {
     min-height: 100vh;
 }

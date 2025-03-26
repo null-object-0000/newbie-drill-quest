@@ -145,14 +145,14 @@ onMounted(() => {
     overflow: hidden;
 }
 
-/* #ifdef H5 */
+/* #ifdef WEB */
 .config-page {
     min-height: 100%;
 }
 
 /* #endif */
 
-/* #ifndef H5 */
+/* #ifndef WEB */
 .config-page {
     min-height: 100vh;
 }
