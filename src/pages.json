@@ -47,7 +47,8 @@
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "面试挑战",
 		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"backgroundColor": "#F8F8F8",
+		"navigationStyle": "custom"
 	},
 	"tabBar": {
 		"color": "#999999",
