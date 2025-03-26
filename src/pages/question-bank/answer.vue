@@ -97,7 +97,12 @@ const submitAnswer = async () => {
         success: (res) => {
             res.eventChannel.emit('evaluateAnswer', {
                 question: currentQuestion.value?.content,
-                answer: textAnswer.value
+                answer: textAnswer.value,
+
+                difficulty: currentQuestion.value?.difficulty,
+                category: currentQuestion.value?.category,
+
+                isFollowUp: isFollowUp.value
             })
         }
     })

@@ -31,6 +31,12 @@
 			}
 		},
 		{
+			"path": "pages/profile/records",
+			"style": {
+				"navigationBarTitleText": "练习记录"
+			}
+		},
+		{
 			"path": "pages/profile/config",
 			"style": {
 				"navigationBarTitleText": "设置"

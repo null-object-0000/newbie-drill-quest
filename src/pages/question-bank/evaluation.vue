@@ -54,6 +54,7 @@
 import { ref, getCurrentInstance } from 'vue'
 import { evaluateAnswer } from '@/utils/ai'
 import { onLoad } from '@dcloudio/uni-app'
+import { saveEvaluationRecord } from '@/store/config'
 
 const evaluationProgress = ref<{
     score: number
@@ -81,8 +82,11 @@ onLoad(() => {
         return
     }
 
-    eventChannel.on('evaluateAnswer', async (params: { question: string, answer: string }) => {
-        console.log('params', params)
+    eventChannel.on('evaluateAnswer', async (params: {
+        question: string, answer: string,
+        difficulty?: string, category?: string,
+        isFollowUp?: boolean
+    }) => {
         try {
             const result = await evaluateAnswer(
                 params.question,
@@ -100,6 +104,24 @@ onLoad(() => {
             )
 
             evaluationProgress.value = result
+
+            // 保存评估记录
+            if (result.score >= 0) {
+                saveEvaluationRecord({
+                    questionContent: params.question,
+                    questionDifficulty: params.difficulty,
+                    questionCategory: params.category,
+                    questionIsFollowUp: params.isFollowUp || false,
+
+
+                    answer: params.answer,
+                    score: result.score,
+                    feedback: result.feedback,
+                    suggestions: result.suggestions,
+                    example: result.example,
+                    timestamp: Date.now()
+                })
+            }
         } catch (error) {
             console.error('评估失败', error)
             uni.showToast({

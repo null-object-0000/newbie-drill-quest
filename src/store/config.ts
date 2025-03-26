@@ -2,6 +2,20 @@ import { ref } from 'vue'
 import { questionBanks } from '@/mock/questions'
 import type { QuestionBank } from '@/mock/questions'
 
+export interface EvaluationRecord {
+    questionContent: string
+    questionDifficulty?: string
+    questionCategory?: string
+    questionIsFollowUp: boolean
+
+    answer: string
+    score: number
+    feedback: string
+    suggestions: string
+    example: string
+    timestamp: number
+}
+
 interface AIConfig {
     baseURL: string
     apiKey: string
@@ -12,13 +26,16 @@ interface AIConfig {
 // 题库列表
 export const questionBankList = ref<QuestionBank[]>(questionBanks)
 
+// 评估记录列表
+export const evaluationRecords = ref<EvaluationRecord[]>([])
+
 // 当前激活的题库ID
 export const activeQuestionBankId = ref<string | null>(null)
 
 // 默认配置
 const defaultConfig: AIConfig = {
     baseURL: 'https://api.deepseek.com/v1',
-    apiKey: 'sk-93b1e770e4b84470baa224e7a2f647f2',
+    apiKey: '',
     model: 'deepseek-chat',
     temperature: 0.7
 }
@@ -112,7 +129,47 @@ export const resetAIConfig = () => {
     })
 }
 
+// 从本地存储加载评估记录
+export const loadEvaluationRecords = () => {
+    uni.getStorage({
+        key: 'evaluation_records',
+        success: (res) => {
+            evaluationRecords.value = res.data as EvaluationRecord[]
+        },
+        fail: () => {
+            evaluationRecords.value = []
+        }
+    })
+}
+
+// 获取评估记录
+export const getEvaluationRecords = (): EvaluationRecord[] => {
+    try {
+        const records = uni.getStorageSync('evaluation_records')
+        return records ? records as EvaluationRecord[] : []
+    } catch (error) {
+        console.error('获取评估记录失败:', error)
+        return []
+    }
+}
+
+// 保存评估记录到本地存储
+export const saveEvaluationRecord = (record: EvaluationRecord) => {
+    evaluationRecords.value = [record, ...evaluationRecords.value]
+    uni.setStorage({
+        key: 'evaluation_records',
+        data: evaluationRecords.value
+    })
+}
+
+// 清空评估记录
+export const clearEvaluationRecords = () => {
+    evaluationRecords.value = []
+    uni.removeStorageSync('evaluation_records')
+}
+
 export const loadConfig = () => {
     loadActiveQuestionBank()
     loadAIConfig()
+    loadEvaluationRecords()
 }

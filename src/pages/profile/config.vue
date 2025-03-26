@@ -1,26 +1,36 @@
 <template>
     <view class="config-page">
-        <view class="config-form">
-            <view class="form-item">
-                <text class="label">API 地址</text>
-                <input class="input" type="text" v-model="config.baseURL" placeholder="请输入 API 地址" />
+        <view class="config-section">
+            <text class="section-title">AI 配置</text>
+            <view class="config-form">
+                <view class="form-item">
+                    <text class="label">API 地址</text>
+                    <input class="input" type="text" v-model="config.baseURL" placeholder="请输入 API 地址" />
+                </view>
+                <view class="form-item">
+                    <text class="label">API Key</text>
+                    <input class="input" type="text" v-model="config.apiKey" placeholder="请输入 API Key" />
+                </view>
+                <view class="form-item">
+                    <text class="label">模型</text>
+                    <input class="input" type="text" v-model="config.model" placeholder="请输入模型名称" />
+                </view>
+                <view class="form-item">
+                    <text class="label">温度</text>
+                    <slider class="slider" :value="config.temperature" @change="handleTemperatureChange" :min="0" :max="2"
+                        :step="0.1" show-value />
+                </view>
+                <view class="button-group">
+                    <button class="save-btn" @click="handleSave">保存配置</button>
+                    <button class="reset-btn" @click="handleReset">重置默认</button>
+                </view>
             </view>
-            <view class="form-item">
-                <text class="label">API Key</text>
-                <input class="input" type="text" v-model="config.apiKey" placeholder="请输入 API Key" />
-            </view>
-            <view class="form-item">
-                <text class="label">模型</text>
-                <input class="input" type="text" v-model="config.model" placeholder="请输入模型名称" />
-            </view>
-            <view class="form-item">
-                <text class="label">温度</text>
-                <slider class="slider" :value="config.temperature" @change="handleTemperatureChange" :min="0" :max="2"
-                    :step="0.1" show-value />
-            </view>
-            <view class="button-group">
-                <button class="save-btn" @click="handleSave">保存配置</button>
-                <button class="reset-btn" @click="handleReset">重置默认</button>
+        </view>
+
+        <view class="config-section">
+            <text class="section-title">挑战管理</text>
+            <view class="config-form">
+                <button class="clear-btn" @click="handleClearRecords">清空练习记录</button>
             </view>
         </view>
     </view>
@@ -28,7 +38,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { currentConfig, saveAIConfig, resetAIConfig, loadConfig } from '@/store/config'
+import { currentConfig, saveAIConfig, resetAIConfig, loadConfig, clearEvaluationRecords } from '@/store/config'
 
 const config = ref({
     baseURL: currentConfig.value.baseURL,
@@ -58,6 +68,22 @@ const handleTemperatureChange = (e: any) => {
     config.value.temperature = e.detail.value
 }
 
+const handleClearRecords = () => {
+    uni.showModal({
+        title: '确认清空',
+        content: '确定要清空所有练习记录吗？此操作不可恢复。',
+        success: (res) => {
+            if (res.confirm) {
+                clearEvaluationRecords()
+                uni.showToast({
+                    title: '记录已清空',
+                    icon: 'success'
+                })
+            }
+        }
+    })
+}
+
 onMounted(() => {
     loadConfig()
     config.value = { ...currentConfig.value }
@@ -70,6 +96,18 @@ onMounted(() => {
     background-color: #f8f8f8;
     box-sizing: border-box;
     overflow: hidden;
+}
+
+.config-section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    display: block;
 }
 
 /* #ifdef H5 */
@@ -143,7 +181,12 @@ onMounted(() => {
 }
 
 .button-group .reset-btn {
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: #FF3B30;
+    color: #fff;
+}
+
+.button-group .clear-btn {
+    background-color: #FF9500;
+    color: #fff;
 }
 </style>

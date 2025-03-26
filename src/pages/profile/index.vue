@@ -9,7 +9,7 @@
     </view>
 
     <view class="menu-list">
-      <view class="menu-item">
+      <view class="menu-item" @click="handleNavigateToRecords">
         <text class="menu-text">练习记录</text>
         <text class="menu-arrow">></text>
       </view>
@@ -30,6 +30,12 @@ const handleNavigateToConfig = () => {
   uni.navigateTo({
     url: '/pages/profile/config'
   })
+}
+
+const handleNavigateToRecords = () => {
+  uni.navigateTo({
+    url: '/pages/profile/records'
+  }) 
 }
 </script>
 
