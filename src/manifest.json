@@ -17,7 +17,7 @@
     "h5":{
         "router":{
             "mode": "hash",
-            "base": "/newbie-drill-quest"
+            "base": "/newbie-drill-quest/"
         }
     },
     "vueVersion" : "3"

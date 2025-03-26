@@ -52,20 +52,20 @@
 			{
 				"pagePath": "pages/index/index",
 				"text": "挑战",
-				"iconPath": "/static/icons/challenge.png",
-				"selectedIconPath": "/static/icons/challenge-selected.png"
+				"iconPath": "static/icons/challenge.png",
+				"selectedIconPath": "static/icons/challenge-selected.png"
 			},
 			{
 				"pagePath": "pages/question-bank/index",
 				"text": "题库",
-				"iconPath": "/static/icons/question-bank.png",
-				"selectedIconPath": "/static/icons/question-bank-selected.png"
+				"iconPath": "static/icons/question-bank.png",
+				"selectedIconPath": "static/icons/question-bank-selected.png"
 			},
 			{
 				"pagePath": "pages/profile/index",
 				"text": "我的",
-				"iconPath": "/static/icons/profile.png",
-				"selectedIconPath": "/static/icons/profile-selected.png"
+				"iconPath": "static/icons/profile.png",
+				"selectedIconPath": "static/icons/profile-selected.png"
 			}
 		]
 	}
