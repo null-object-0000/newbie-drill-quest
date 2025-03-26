@@ -1,10 +1,7 @@
+import { currentConfig } from '@/store/config'
+
 // AI API 配置
 const WS_URL = 'ws://localhost:18780'
-
-interface AIConfig {
-    baseURL: string
-    apiKey: string
-}
 
 interface FeedbackResult {
     score: number
@@ -26,98 +23,105 @@ interface StreamResponse {
     error?: string
 }
 
+// 生成评估提示词
 function generatePrompt(question: string, answer: string): string {
-    const prompt = `作为技术面试官，请对以下回答进行评估，并严格分步返回结果：
+    return `作为技术面试官，请对以下回答进行评估，并严格分步返回结果：
 
-                    问题：${question}
-                    答案：${answer}
+            问题：${question}
+            答案：${answer}
 
-                    请按以下步骤返回 JSON 结果，每一步均为完整对象：
-                    1. 评分（仅含分数）：
-                    {"score": 0-100的整数}
-                    
-                    2. 评价（分数+评价）：
-                    {"score": 同上, "feedback": "面试官口吻的详细评价，中文，非空"}
-                    
-                    3. 建议（分数+评价+建议）：
-                    {"score": 同上, "feedback": 同上, "suggestions": "导师口吻的改进建议，中文，非空"}
-                    
-                    4. 范例（分数+评价+建议+范例）：
-                    {"score": 同上, "feedback": 同上, "suggestions": 同上, "example": "标准答案示例，中文，非空"}
-                    
-                    5. 最终结果（含追问判断）：
-                    {"score": 同上, "feedback": 同上, "suggestions": 同上, "example": 同上, "needFollowUp": true/false, "followUpQuestion": "不要随意追问，若需追问，此处为非空中文问题"}
-                    
-                    注意：
-                    1. score 需综合准确性（0-40）、完整性（0-30）、清晰度（0-20）、逻辑性（0-10）评分。
-                    2. 所有文本字段必须为非空中文，禁止缺失或混合其他语言。
-                    3. 以面试官角度考虑该面试者是否值得追问或引导，若需要则将 needFollowUp 设置为 true，否则为 false。
-                    3. needFollowUp 为 true 时，followUpQuestion 必须是与原问题强相关、能进一步考察候选人技术深度的追问问题，避免开放式提问。
-                `
-
-    return prompt
+            请按以下步骤返回 JSON 结果，每一步均为完整对象：
+            1. 评分（仅含分数）：
+            {"score": 0-100的整数}
+            
+            2. 评价（分数+评价）：
+            {"score": 同上, "feedback": "面试官口吻的详细评价，中文，非空"}
+            
+            3. 建议（分数+评价+建议）：
+            {"score": 同上, "feedback": 同上, "suggestions": "导师口吻的改进建议，中文，非空"}
+            
+            4. 范例（分数+评价+建议+范例）：
+            {"score": 同上, "feedback": 同上, "suggestions": 同上, "example": "标准答案示例，中文，非空"}
+            
+            5. 最终结果（含追问判断）：
+            {"score": 同上, "feedback": 同上, "suggestions": 同上, "example": 同上, "needFollowUp": true/false, "followUpQuestion": "不要随意追问，若需追问，此处为非空中文问题"}
+            
+            注意：
+            1. score 需综合准确性（0-40）、完整性（0-30）、清晰度（0-20）、逻辑性（0-10）评分。
+            2. 所有文本字段必须为非空中文，禁止缺失或混合其他语言。
+            3. 以面试官角度考虑该面试者是否值得追问或引导，若需要则将 needFollowUp 设置为 true，否则为 false。
+            3. needFollowUp 为 true 时，followUpQuestion 必须是与原问题强相关、能进一步考察候选人技术深度的追问问题，避免开放式提问。
+            `
 }
 
-function generateParameters(prompt: string) {
-    return {
+// 生成请求参数
+function generateRequestConfig(question: string, answer: string, isStream = false) {
+    const config = {
+        baseURL: currentConfig.value.baseURL,
+        apiKey: currentConfig.value.apiKey
+    }
+
+    const prompt = generatePrompt(question, answer)
+    const data = {
         model: currentConfig.value.model,
         temperature: currentConfig.value.temperature,
         response_format: { type: 'json_object' },
         messages: [
             { role: 'system', content: '你是一位经验丰富的技术面试官，善于评估候选人的回答并提供建设性的反馈。' },
             { role: 'user', content: prompt }
-        ] as {
-            role: 'user' | 'assistant' | 'system' | 'developer',
-            content: string
-        }[]
+        ] as const,
+        stream: isStream
+    }
+
+    return { config, data }
+}
+
+// 处理评估结果
+function processEvaluationResult(result: any): FeedbackResult {
+    return {
+        score: result.score,
+        feedback: result.feedback || '',
+        suggestions: result.suggestions || '',
+        example: result.example || '',
+        needFollowUp: result.needFollowUp || false,
+        followUpQuestion: result.followUpQuestion || ''
     }
 }
 
-function completionContent(message: string) {
-    // 先看是不是完整的 JSON 对象，是的话直接返回
+// 处理流式内容
+function processStreamContent(message: string) {
     try {
-        JSON.parse(message)
-        return message
-    } catch (error) {
-        // 如果是逗号结尾，就先去掉逗号
-        if (message.endsWith(',')) {
-            message = message.slice(0, -1)
+        const parsed = JSON.parse(message)
+        if (typeof parsed === 'object' && parsed !== null) {
+            return message
         }
+    } catch {}
 
-        // 不是完整的 JSON 对象，尝试完善
-        if (message.endsWith('"')) {
-            // 先看结尾有引号，但是没有花括号的情况，就补充花括号
-            message += '}'
-        } else if (!message.endsWith('"') && !message.endsWith('}')) {
-            // 结尾没有引号也没有花括号的情况，就补充
-            message += '"}'
-        }
+    let processedMessage = message
+    if (processedMessage.endsWith(',')) {
+        processedMessage = processedMessage.slice(0, -1)
+    }
+    if (!processedMessage.startsWith('{')) {
+        processedMessage = '{' + processedMessage
+    }
+    if (processedMessage.endsWith('"')) {
+        processedMessage += '}'
+    } else if (!processedMessage.endsWith('"') && !processedMessage.endsWith('}')) {
+        processedMessage += '"}'
+    }
 
-        return message
+    try {
+        JSON.parse(processedMessage)
+        return processedMessage
+    } catch {
+        return null
     }
 }
 
-import { currentConfig } from '@/store/config'
-
-function generateAIConfig() {
-    const config: AIConfig = {
-        baseURL: currentConfig.value.baseURL,
-        apiKey: currentConfig.value.apiKey
-    }
-    return config
-}
-
-/**
- * 使用 AI API 对答案进行评分和点评
- * @param question 面试问题
- * @param answer 用户答案
- * @returns 评分和反馈结果
- */
+// HTTP 请求评估
 async function evaluateWithRequest(question: string, answer: string): Promise<FeedbackResult> {
     return new Promise((resolve, reject) => {
-        const config: AIConfig = generateAIConfig()
-        const prompt = generatePrompt(question, answer)
-        const data = generateParameters(prompt)
+        const { config, data } = generateRequestConfig(question, answer)
 
         uni.request({
             url: `${config.baseURL}/chat/completions`,
@@ -130,231 +134,186 @@ async function evaluateWithRequest(question: string, answer: string): Promise<Fe
             data,
             success: (res) => {
                 try {
-                    const data = res.data as any
-                    const content = data.choices[0].message.content
-                    const result = JSON.parse(content)
-                    resolve({
-                        score: result.score,
-                        feedback: result.feedback || '',
-                        suggestions: result.suggestions || '',
-                        example: result.example || '',
-                        needFollowUp: result.needFollowUp || false,
-                        followUpQuestion: result.followUpQuestion || ''
-                    })
+                    const content = (res.data as any).choices[0].message.content
+                    resolve(processEvaluationResult(JSON.parse(content)))
                 } catch (error) {
                     reject(new Error('解析评估结果失败'))
                 }
             },
-            fail: (error) => {
-                reject(new Error('请求评估失败'))
-            }
+            fail: () => reject(new Error('请求评估失败'))
         })
     })
 }
 
-// SSE 连接函数
-async function connectSSE(question: string, answer: string, onProgress: (data: Partial<FeedbackResult>) => void): Promise<FeedbackResult> {
-    return new Promise(async (resolve, reject) => {
-        try {
-            let currentContent = ''
-            let current: FeedbackResult = {
-                score: -1,
-                feedback: '',
-                suggestions: '',
-                example: '',
-                needFollowUp: false,
-                followUpQuestion: ''
-            }
+// SSE 连接评估
+async function connectSSE(
+    question: string,
+    answer: string,
+    onProgress: (data: Partial<FeedbackResult>) => void
+): Promise<FeedbackResult> {
+    const { config, data } = generateRequestConfig(question, answer, true)
+    let currentContent = ''
+    let current = processEvaluationResult({})
 
-            const config: AIConfig = generateAIConfig()
-            const prompt = generatePrompt(question, answer)
-            const data = generateParameters(prompt)
+    const response = await fetch(`${config.baseURL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.apiKey}`,
+            'Accept': 'text/event-stream'
+        },
+        body: JSON.stringify(data)
+    })
 
-            const response = await fetch(`${config.baseURL}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.apiKey}`,
-                    'Accept': 'text/event-stream'
-                },
-                body: JSON.stringify({
-                    ...data,
-                    stream: true
-                })
-            })
+    if (!response.ok || !response.body) {
+        throw new Error(response.ok ? 'Response body is null' : `HTTP error! status: ${response.status}`)
+    }
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
 
-            if (!response.body) {
-                throw new Error('Response body is null')
-            }
+    while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-            const reader = response.body.getReader()
-            const decoder = new TextDecoder()
+        const chunk = decoder.decode(value, { stream: true })
+        for (const line of chunk.split('\n').filter(line => line.trim())) {
+            if (!line.startsWith('data: ')) continue
 
-            while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
+            const data = line.slice(6)
+            if (data === '[DONE]') continue
 
-                const chunk = decoder.decode(value, { stream: true })
-                const lines = chunk.split('\n').filter(line => line.trim() !== '')
+            try {
+                const parsed = JSON.parse(data) as StreamResponse
+                if (parsed.error) throw new Error(parsed.error)
 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6)
-                        if (data === '[DONE]') continue
-
+                if (parsed.choices?.[0]?.delta?.content) {
+                    currentContent += parsed.choices[0].delta.content
+                    const processedContent = processStreamContent(currentContent)
+                    if (processedContent) {
                         try {
-                            const parsed = JSON.parse(data) as StreamResponse
-                            if (parsed.error) {
-                                throw new Error(parsed.error)
-                            }
-
-                            if (parsed.choices?.[0]?.delta?.content) {
-                                currentContent += parsed.choices[0].delta.content
-                                try {
-                                    const parsedResult = JSON.parse(completionContent(currentContent))
-                                    current.score = parsedResult.score
-                                    current.feedback = parsedResult.feedback || ''
-                                    current.suggestions = parsedResult.suggestions || ''
-                                    current.example = parsedResult.example || ''
-                                    current.needFollowUp = parsedResult.needFollowUp || false
-                                    current.followUpQuestion = parsedResult.followUpQuestion || ''
-
-                                    onProgress(current)
-                                } catch (parseError) {
-                                    // 解析错误说明 JSON 还未完整，继续等待更多数据
-                                }
-                            }
-
-                            if (parsed.choices?.[0]?.finish_reason === 'stop') {
-                                resolve(current)
-                                return
-                            }
+                            const parsedResult = JSON.parse(processedContent)
+                            current = processEvaluationResult(parsedResult)
+                            onProgress(current)
                         } catch (error) {
-                            console.error('解析 SSE 数据时出错:', error)
+                            console.warn('解析 JSON 结果失败:', error)
                         }
                     }
                 }
-            }
 
-            resolve(current)
-        } catch (error) {
-            reject(error)
+                if (parsed.choices?.[0]?.finish_reason === 'stop') {
+                    return current
+                }
+            } catch (error) {
+                console.error('解析 SSE 数据时出错:', error)
+            }
         }
+    }
+
+    return current
+}
+
+// WebSocket 连接评估
+async function connectWebSocket(
+    question: string,
+    answer: string,
+    onProgress: (data: Partial<FeedbackResult>) => void
+): Promise<FeedbackResult> {
+    return new Promise((resolve, reject) => {
+        const { config, data } = generateRequestConfig(question, answer)
+        let currentContent = ''
+        let current = processEvaluationResult({})
+
+        const socketTask = uni.connectSocket({
+            url: WS_URL,
+            complete: () => {}
+        })
+
+        socketTask.onOpen(() => {
+            socketTask.send({
+                data: JSON.stringify({ ...data, ...config }),
+                fail: (error) => {
+                    console.error('发送消息失败:', error)
+                    reject(new Error('发送消息失败'))
+                }
+            })
+        })
+
+        socketTask.onMessage((result) => {
+            try {
+                const data = JSON.parse(result.data as string) as StreamResponse
+                if (data.error) {
+                    socketTask.close({})
+                    reject(new Error(data.error))
+                    return
+                }
+
+                if (data.choices?.[0]?.delta?.content) {
+                    currentContent += data.choices[0].delta.content
+                    const processedContent = processStreamContent(currentContent)
+                    if (processedContent) {
+                        try {
+                            const parsedResult = JSON.parse(processedContent)
+                            current = processEvaluationResult(parsedResult)
+                            onProgress(current)
+                        } catch (error) {
+                            console.warn('解析 JSON 结果失败:', error)
+                        }
+                    }
+                }
+
+                if (data.choices?.[0]?.finish_reason === 'stop') {
+                    socketTask.close({})
+                    resolve(current)
+                }
+            } catch (error) {
+                console.error('处理消息时出错:', error)
+            }
+        })
+
+        socketTask.onError(async () => {
+            console.warn('WebSocket 连接失败，降级使用 HTTP 请求')
+            try {
+                current = await evaluateWithRequest(question, answer)
+                onProgress(current)
+                resolve(current)
+            } catch (error) {
+                reject(error)
+            }
+        })
+
+        socketTask.onClose(() => {
+            if (current.score >= 0) resolve(current)
+        })
     })
 }
 
-export async function evaluateAnswer(question: string, answer: string, onProgress?: (data: Partial<FeedbackResult>) => void): Promise<FeedbackResult> {
-    return new Promise(async (resolve, reject) => {
-        try {
-            let currentContent = ''
-
-            let current: FeedbackResult = {
-                score: -1,
-                feedback: '',
-                suggestions: '',
-                example: '',
-                needFollowUp: false,
-                followUpQuestion: ''
+/**
+ * 使用 AI API 对答案进行评分和点评
+ * @param question 面试问题
+ * @param answer 用户答案
+ * @param onProgress 进度回调函数
+ * @returns 评分和反馈结果
+ */
+export async function evaluateAnswer(
+    question: string,
+    answer: string,
+    onProgress: (data: Partial<FeedbackResult>) => void = () => {}
+): Promise<FeedbackResult> {
+    try {
+        // 在 H5 环境下优先尝试使用 SSE
+        if (uni.getSystemInfoSync().uniPlatform === 'web') {
+            try {
+                return await connectSSE(question, answer, onProgress)
+            } catch (error) {
+                console.warn('SSE 连接失败，降级使用 WebSocket:', error)
             }
-
-            // 在 H5 环境下优先尝试使用 SSE
-            if (uni.getSystemInfoSync().uniPlatform === 'web') {
-                try {
-                    return await connectSSE(question, answer, onProgress || (() => { }))
-                } catch (error) {
-                    console.warn('SSE 连接失败，降级使用 WebSocket:', error)
-                }
-            }
-
-            // 非 H5 环境或 SSE 失败时使用 WebSocket
-            let socketTask: UniApp.SocketTask = uni.connectSocket({
-                url: WS_URL,
-                complete: () => { }
-            })
-
-            socketTask.onOpen(() => {
-                const config: AIConfig = generateAIConfig()
-                const prompt = generatePrompt(question, answer)
-                const data = generateParameters(prompt)
-
-                const apiConfig = {
-                    ...data,
-                    baseURL: config.baseURL,
-                    apiKey: config.apiKey
-                }
-
-                socketTask.send({
-                    data: JSON.stringify(apiConfig),
-                    fail: (error) => {
-                        console.error('发送消息失败:', error)
-                        reject(new Error('发送消息失败'))
-                    }
-                })
-            })
-
-
-            socketTask.onMessage((result) => {
-                try {
-                    const data = JSON.parse(result.data as string) as StreamResponse
-                    if (data.error) {
-                        socketTask.close({})
-                        reject(new Error(data.error))
-                        return
-                    }
-
-                    if (data.choices?.[0]?.delta) {
-                        const delta = data.choices[0].delta
-                        if (delta.content) {
-                            currentContent += delta.content
-                            try {
-                                // 尝试解析当前内容中的 JSON 对象
-                                const parsedResult = JSON.parse(completionContent(currentContent))
-                                current.score = parsedResult.score
-                                current.feedback = parsedResult.feedback || ''
-                                current.suggestions = parsedResult.suggestions || ''
-                                current.example = parsedResult.example || ''
-                                current.needFollowUp = parsedResult.needFollowUp || false
-                                current.followUpQuestion = parsedResult.followUpQuestion || ''
-
-                                if (onProgress) {
-                                    onProgress(current)
-                                }
-                            } catch (parseError) {
-                                // 解析错误说明 JSON 还未完整，继续等待更多数据
-                            }
-                        }
-                    }
-
-                    // 检查是否收到结束信号
-                    if (data.choices?.[0]?.finish_reason === 'stop') {
-                        socketTask.close({})
-                        resolve(current)
-                        return
-                    }
-                } catch (error) {
-                    console.error('处理消息时出错:', error)
-                }
-            })
-
-            socketTask.onError(async (error) => {
-                console.warn('WebSocket 连接失败，降级使用 HTTP 请求:', error)
-                current = await evaluateWithRequest(question, answer)
-                console.warn('降级使用 HTTP 请求结果:', current)
-                onProgress && onProgress(current)
-                resolve(current)
-            })
-
-            socketTask.onClose(() => {
-                if (current.score >= 0 && !current.feedback && !current.suggestions) {
-                    resolve(current)
-                }
-            })
-        } catch (error) {
-            reject(error)
         }
-    })
+
+        // 非 H5 环境或 SSE 失败时使用 WebSocket
+        return await connectWebSocket(question, answer, onProgress)
+    } catch (error) {
+        console.error('评估失败:', error)
+        throw error
+    }
 }

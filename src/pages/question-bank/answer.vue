@@ -15,7 +15,7 @@
                 <button class="answer-btn text" @click="selectAnswerMode('text')">
                     <text class="btn-text">文字回答</text>
                 </button>
-                <button class="answer-btn voice" disabled @click="selectAnswerMode('voice')">
+                <button class="answer-btn voice" @click="selectAnswerMode('voice')">
                     <text class="btn-text">语音回答</text>
                 </button>
             </view>
@@ -40,7 +40,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, getCurrentInstance } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { ref, getCurrentInstance } from 'vue'
 
 interface CurrentQuestion {
     content: string
@@ -54,7 +55,7 @@ const textAnswer = ref('')
 const isRecording = ref(false)
 const isFollowUp = ref(false)
 
-onMounted(() => {
+onLoad(() => {
     const instance = getCurrentInstance()?.proxy
     const eventChannel = (instance as any)?.getOpenerEventChannel()
 
@@ -124,14 +125,14 @@ const stopRecording = () => {
 
 /* #ifdef H5 */
 .content {
-  height: 100%;
+    height: 100%;
 }
 
 /* #endif */
 
 /* #ifdef MP-WEIXIN */
 .content {
-  height: 100vh;
+    height: 100vh;
 }
 
 /* #endif */
@@ -274,7 +275,7 @@ const stopRecording = () => {
     border: 2rpx solid #007AFF;
 }
 
-.answer-btn.voice.disabled {
+.answer-btn.disabled {
     color: #ccc;
     border-color: #ccc;
 }

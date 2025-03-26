@@ -51,8 +51,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, getCurrentInstance } from 'vue'
+import { ref, getCurrentInstance } from 'vue'
 import { evaluateAnswer } from '@/utils/ai'
+import { onLoad } from '@dcloudio/uni-app'
 
 const evaluationProgress = ref<{
     score: number
@@ -69,7 +70,7 @@ const evaluationProgress = ref<{
     needFollowUp: false
 })
 
-onMounted(() => {
+onLoad(() => {
     const instance = getCurrentInstance()?.proxy
     const eventChannel = (instance as any)?.getOpenerEventChannel();
 
@@ -81,6 +82,7 @@ onMounted(() => {
     }
 
     eventChannel.on('evaluateAnswer', async (params: { question: string, answer: string }) => {
+        console.log('params', params)
         try {
             const result = await evaluateAnswer(
                 params.question,
