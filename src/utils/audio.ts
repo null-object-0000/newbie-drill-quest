@@ -1,5 +1,7 @@
 import { currentAudioConfig } from '@/store/config'
 import { v4 as uuidv4 } from 'uuid'
+import Recorder from 'recorder-core'
+import 'recorder-core/src/engine/wav'
 
 function generateUUID() {
     return uuidv4().replace(/-/g, '')
@@ -10,14 +12,28 @@ interface AudioRecorderOptions {
     onError?: (error: string) => void
 }
 
+interface RecorderType {
+    open: (onSuccess?: () => void, onError?: (msg: string, isUserNotAllow: boolean) => void) => void
+    /**
+     * 开始录音，必须在 open 之后调用
+     */
+    start: () => void
+    /**
+     * 停止录音，必须在 start 之后调用
+     */
+    stop: (onSuccess?: (blob: Blob, duration: number) => void, onError?: (error: any) => void) => void
+    /**
+     * 关闭录音，释放录音资源，当然可以不释放，后面可以连续调用 start
+     */
+    close: () => void
+}
+
 export class AudioRecorder {
     private websocket: WebSocket | null = null
-    private audioContext: AudioContext | null = null
-    private scriptProcessor: ScriptProcessorNode | null = null
-    private audioInput: MediaStreamAudioSourceNode | null = null
-    private audioStream: MediaStream | null = null
     private isRecording: boolean = false
     private options: AudioRecorderOptions
+
+    private recorder: RecorderType | undefined
 
     constructor(options: AudioRecorderOptions = {}) {
         this.options = options
@@ -70,31 +86,55 @@ export class AudioRecorder {
         }
     }
 
+    public async prepareRecording() {
+        try {
+            console.log('准备录音')
+            this.recorder = new Recorder({
+                type: 'wav',
+                sampleRate: 16000,
+                bitRate: 16,
+                onProcess: (buffers: Int16Array[], powerLevel: number, bufferDuration: number, bufferSampleRate: number, newBufferIdx: number, asyncEnd: () => void) => {
+                    // 如果全都是空内容，就不发送，所有都是 0
+                    let isAllZero = true
+                    for (let i = 0; i < buffers.length; i++) {
+                        const buffer = buffers[i]
+                        for (let j = 0; j < buffer.length; j++) {
+                            if (buffer[j] !== 0) {
+                                isAllZero = false
+                                break
+                            }
+                        }
+                    }
+                    if (isAllZero) {
+                        console.warn('全都是空内容，不发送')
+                        return 
+                    }
+
+                    if (this.websocket?.readyState === WebSocket.OPEN) {
+                        for (let i = 0; i < buffers.length; i++) {
+                            const buffer = buffers[i]
+                            this.websocket.send(buffer)
+                        }
+                    }
+                }
+            }) as RecorderType
+
+            this.recorder.open(
+                () => {
+                    console.log('开始录音');
+                    this.connectWebSocket()
+                },
+                (msg: string, isUserNotAllow: boolean) => { console.log('录音失败', msg, isUserNotAllow) }
+            )
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
     public async startRecording() {
         try {
             this.isRecording = true
-            this.connectWebSocket()
-
-            this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                sampleRate: 16000
-            })
-            this.audioInput = this.audioContext.createMediaStreamSource(this.audioStream)
-
-            this.scriptProcessor = this.audioContext.createScriptProcessor(2048, 1, 1)
-            this.scriptProcessor.onaudioprocess = (event) => {
-                const inputData = event.inputBuffer.getChannelData(0)
-                const inputData16 = new Int16Array(inputData.length)
-                for (let i = 0; i < inputData.length; ++i) {
-                    inputData16[i] = Math.max(-1, Math.min(1, inputData[i])) * 0x7FFF
-                }
-                if (this.websocket?.readyState === WebSocket.OPEN) {
-                    this.websocket.send(inputData16.buffer)
-                }
-            }
-
-            this.audioInput.connect(this.scriptProcessor)
-            this.scriptProcessor.connect(this.audioContext.destination)
+            this.recorder?.start()
         } catch (e) {
             console.error(e)
             this.options.onError?.('录音失败')
@@ -105,22 +145,18 @@ export class AudioRecorder {
     public stopRecording() {
         this.isRecording = false
 
-        if (this.scriptProcessor) {
-            this.scriptProcessor.disconnect()
-            this.scriptProcessor = null
+        if (this.recorder) {
+            this.recorder.stop(
+                (blob: Blob, duration: number) => {
+                    console.log('录音结束', blob, duration)
+                },
+                (error: any) => {
+                    console.error('录音结束失败', error)
+                    this.options.onError?.('录音结束失败')
+                }
+            )
         }
-        if (this.audioInput) {
-            this.audioInput.disconnect()
-            this.audioInput = null
-        }
-        if (this.audioStream) {
-            this.audioStream.getTracks().forEach(track => track.stop())
-            this.audioStream = null
-        }
-        if (this.audioContext) {
-            this.audioContext.close()
-            this.audioContext = null
-        }
+
         if (this.websocket) {
             this.websocket.close()
             this.websocket = null

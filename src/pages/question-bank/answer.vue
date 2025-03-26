@@ -33,9 +33,8 @@
                 <view class="recognition-result" v-if="recognitionResult">
                     <text class="result-text">{{ recognitionResult }}</text>
                 </view>
-                <button class="record-btn" :class="{ recording: isRecording }" @touchstart="startRecording"
-                    @touchend="stopRecording">
-                    {{ isRecording ? '松开结束录音' : '按住开始录音' }}
+                <button class="record-btn" :class="{ recording: isRecording }" @click="toggleRecording">
+                    {{ isRecording ? '暂停回答' : '开始回答' }}
                 </button>
             </view>
         </view>
@@ -88,8 +87,28 @@ onLoad(() => {
     })
 })
 
-const selectAnswerMode = (mode: 'text' | 'voice') => {
+const selectAnswerMode = async (mode: 'text' | 'voice') => {
     selectedMode.value = mode
+
+    console.log('selectAnswerMode', mode)
+    if (mode === 'voice') {
+        if (!audioRecorder.value) {
+            audioRecorder.value = new AudioRecorder({
+                onResult: (result) => {
+                    recognitionResult.value += result
+                    textAnswer.value = recognitionResult.value
+                },
+                onError: (error) => {
+                    uni.showToast({
+                        title: error,
+                        icon: 'none'
+                    })
+                }
+            })
+        }
+
+        await audioRecorder.value?.prepareRecording()
+    }
 }
 
 const submitAnswer = async () => {
@@ -117,29 +136,15 @@ const submitAnswer = async () => {
     })
 }
 
-const startRecording = async () => {
-    if (!audioRecorder.value) {
-        audioRecorder.value = new AudioRecorder({
-            onResult: (result) => {
-                recognitionResult.value += result
-                textAnswer.value = recognitionResult.value
-            },
-            onError: (error) => {
-                uni.showToast({
-                    title: error,
-                    icon: 'none'
-                })
-            }
-        })
-    }
-    isRecording.value = true
-    await audioRecorder.value.startRecording()
-}
-
-const stopRecording = () => {
-    if (audioRecorder.value) {
-        audioRecorder.value.stopRecording()
-        isRecording.value = false
+const toggleRecording = async () => {
+    if (isRecording.value) {
+        if (audioRecorder.value) {
+            audioRecorder.value.stopRecording()
+            isRecording.value = false
+        }
+    } else {
+        isRecording.value = true
+        await audioRecorder.value?.startRecording()
     }
 }
 </script>
