@@ -108,7 +108,11 @@ export class AudioRecorder {
                     if (this.websocket?.readyState === WebSocket.OPEN) {
                         for (let i = newBufferIdx; i < buffers.length; i++) {
                             const buffer = buffers[i]
-                            this.websocket.send(buffer)
+                            const frame = new ArrayBuffer(4 + buffer.byteLength)
+                            const view = new DataView(frame)
+                            view.setUint32(0, buffer.byteLength, false) // 写入4字节数据长度
+                            new Int16Array(frame, 4).set(buffer) // 写入PCM数据
+                            this.websocket.send(frame)
                         }
                     }
                 }
