@@ -165,7 +165,7 @@ const handleFollowUp = () => {
 
 /* #endif */
 
-/* #ifdef MP-WEIXIN */
+/* #ifndef H5 */
 .content {
     min-height: 100vh;
 }

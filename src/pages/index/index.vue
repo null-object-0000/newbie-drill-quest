@@ -77,7 +77,7 @@ const startQuiz = async () => {
 
 /* #endif */
 
-/* #ifdef MP-WEIXIN */
+/* #ifndef H5 */
 .content {
   height: 100vh;
 }

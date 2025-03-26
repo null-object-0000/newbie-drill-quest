@@ -152,7 +152,7 @@ onMounted(() => {
 
 /* #endif */
 
-/* #ifdef MP-WEIXIN */
+/* #ifndef H5 */
 .config-page {
     min-height: 100vh;
 }

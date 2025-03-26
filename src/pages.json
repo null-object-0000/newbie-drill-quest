@@ -43,13 +43,23 @@
 			}
 		}
 	],
+	// #ifdef H5
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "面试挑战",
+		"navigationBarTitleText": "Newbie Drill Quest",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8",
 		"navigationStyle": "custom"
 	},
+	// #endif
+	// #ifndef H5
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "Newbie Drill Quest",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	// #endif
 	"tabBar": {
 		"color": "#999999",
 		"selectedColor": "#007AFF",

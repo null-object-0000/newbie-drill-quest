@@ -107,7 +107,7 @@ onMounted(() => {
 }
 
 .header {
-  margin: 20rpx 0;
+  margin: 30rpx 0;
   display: flex;
   justify-content: flex-end;
 }
@@ -134,8 +134,7 @@ onMounted(() => {
 
 .question-bank-list {
   border-radius: 24rpx;
-  margin-top: 20rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 130rpx;
 }
 
 .bank-item {

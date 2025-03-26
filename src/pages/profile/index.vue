@@ -54,7 +54,7 @@ const handleNavigateToRecords = () => {
 
 /* #endif */
 
-/* #ifdef MP-WEIXIN */
+/* #ifndef H5 */
 .container {
   height: 100vh;
 }
