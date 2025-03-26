@@ -94,27 +94,9 @@ export class AudioRecorder {
                 sampleRate: 16000,
                 bitRate: 16,
                 onProcess: (buffers: Int16Array[], powerLevel: number, bufferDuration: number, bufferSampleRate: number, newBufferIdx: number, asyncEnd: () => void) => {
-                    // 如果全都是空内容，就不发送，所有都是 0
-                    let isAllZero = true
-                    for (let i = 0; i < buffers.length; i++) {
-                        const buffer = buffers[i]
-                        for (let j = 0; j < buffer.length; j++) {
-                            if (buffer[j] !== 0) {
-                                isAllZero = false
-                                break
-                            }
-                        }
-                    }
-                    if (isAllZero) {
-                        console.warn('全都是空内容，不发送')
-                        return 
-                    }
-
                     if (this.websocket?.readyState === WebSocket.OPEN) {
-                        for (let i = 0; i < buffers.length; i++) {
-                            const buffer = buffers[i]
-                            this.websocket.send(buffer)
-                        }
+                        const audioData = new Int16Array(buffers[buffers.length - 1])
+                        this.websocket.send(audioData.buffer)
                     }
                 }
             }) as RecorderType
@@ -139,6 +121,14 @@ export class AudioRecorder {
             console.error(e)
             this.options.onError?.('录音失败')
             this.isRecording = false
+        }
+    }
+
+    public async pauseRecording() {
+        this.isRecording = false
+        
+        if (this.recorder) {
+            this.recorder.stop()
         }
     }
 

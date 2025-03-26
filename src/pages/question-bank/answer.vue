@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { ref, getCurrentInstance } from 'vue'
 
 interface CurrentQuestion {
@@ -139,7 +139,7 @@ const submitAnswer = async () => {
 const toggleRecording = async () => {
     if (isRecording.value) {
         if (audioRecorder.value) {
-            audioRecorder.value.stopRecording()
+            audioRecorder.value.pauseRecording()
             isRecording.value = false
         }
     } else {
@@ -147,6 +147,13 @@ const toggleRecording = async () => {
         await audioRecorder.value?.startRecording()
     }
 }
+
+onUnload(() => {
+    if (audioRecorder.value) {
+        audioRecorder.value.stopRecording()
+        audioRecorder.value = null
+    }
+})
 </script>
 
 <style>
