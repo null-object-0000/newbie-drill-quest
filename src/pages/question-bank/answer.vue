@@ -30,6 +30,9 @@
             </view>
 
             <view class="answer-section" v-else-if="selectedMode === 'voice'">
+                <view class="recognition-result" v-if="recognitionResult">
+                    <text class="result-text">{{ recognitionResult }}</text>
+                </view>
                 <button class="record-btn" :class="{ recording: isRecording }" @touchstart="startRecording"
                     @touchend="stopRecording">
                     {{ isRecording ? '松开结束录音' : '按住开始录音' }}
@@ -54,6 +57,12 @@ const selectedMode = ref('')
 const textAnswer = ref('')
 const isRecording = ref(false)
 const isFollowUp = ref(false)
+
+import { AudioRecorder } from '@/utils/audio'
+
+// 语音识别相关变量
+const audioRecorder = ref<AudioRecorder | null>(null)
+const recognitionResult = ref('')
 
 onLoad(() => {
     const instance = getCurrentInstance()?.proxy
@@ -108,14 +117,30 @@ const submitAnswer = async () => {
     })
 }
 
-const startRecording = () => {
+const startRecording = async () => {
+    if (!audioRecorder.value) {
+        audioRecorder.value = new AudioRecorder({
+            onResult: (result) => {
+                recognitionResult.value = result
+                textAnswer.value = result
+            },
+            onError: (error) => {
+                uni.showToast({
+                    title: error,
+                    icon: 'none'
+                })
+            }
+        })
+    }
     isRecording.value = true
-    // TODO: 实现录音功能
+    await audioRecorder.value.startRecording()
 }
 
 const stopRecording = () => {
-    isRecording.value = false
-    // TODO: 停止录音并处理录音文件
+    if (audioRecorder.value) {
+        audioRecorder.value.stopRecording()
+        isRecording.value = false
+    }
 }
 </script>
 
@@ -335,5 +360,18 @@ const stopRecording = () => {
 
 .record-btn.recording {
     background-color: #F44336;
+}
+
+.recognition-result {
+    background-color: #f9f9f9;
+    padding: 20rpx;
+    border-radius: 10rpx;
+    margin-bottom: 20rpx;
+}
+
+.result-text {
+    font-size: 28rpx;
+    color: #333;
+    line-height: 1.6;
 }
 </style>

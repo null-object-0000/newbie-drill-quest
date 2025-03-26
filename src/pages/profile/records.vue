@@ -11,8 +11,9 @@
                         <view class="section-header">
                             <text class="section-title">题目</text>
                             <view class="question-info" v-if="record.questionDifficulty && record.questionCategory">
-                                <text class="difficulty" :class="record.questionDifficulty">{{ record.questionDifficulty
-                                    }}</text>
+                                <text class="difficulty" :class="record.questionDifficulty">
+                                    {{ record.questionDifficulty }}
+                                </text>
                                 <text class="category">{{ record.questionCategory }}</text>
                             </view>
                         </view>

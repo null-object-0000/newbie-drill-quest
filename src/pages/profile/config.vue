@@ -17,12 +17,30 @@
                 </view>
                 <view class="form-item">
                     <text class="label">温度</text>
-                    <slider class="slider" :value="config.temperature" @change="handleTemperatureChange" :min="0" :max="2"
-                        :step="0.1" show-value />
+                    <slider class="slider" :value="config.temperature" @change="handleTemperatureChange" :min="0"
+                        :max="2" :step="0.1" show-value />
                 </view>
                 <view class="button-group">
                     <button class="save-btn" @click="handleSave">保存配置</button>
                     <button class="reset-btn" @click="handleReset">重置默认</button>
+                </view>
+            </view>
+        </view>
+
+        <view class="config-section">
+            <text class="section-title">语音交互配置</text>
+            <view class="config-form">
+                <view class="form-item">
+                    <text class="label">AppKey</text>
+                    <input class="input" type="text" v-model="audioConfig.appKey" placeholder="请输入语音识别服务的 AppKey" />
+                </view>
+                <view class="form-item">
+                    <text class="label">Token</text>
+                    <input class="input" type="text" v-model="audioConfig.token" placeholder="请输入语音识别服务的 Token" />
+                </view>
+                <view class="button-group">
+                    <button class="save-btn" @click="handleSaveAudio">保存配置</button>
+                    <button class="reset-btn" @click="handleResetAudio">重置默认</button>
                 </view>
             </view>
         </view>
@@ -38,7 +56,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { currentConfig, saveAIConfig, resetAIConfig, loadConfig, clearEvaluationRecords } from '@/store/config'
+import { currentConfig, currentAudioConfig, saveAIConfig, saveAudioConfig, resetAIConfig, resetAudioConfig, loadConfig, clearEvaluationRecords } from '@/store/config'
 import { checkUserPermission } from '@/store/index'
 
 const config = ref({
@@ -46,6 +64,11 @@ const config = ref({
     apiKey: currentConfig.value.apiKey,
     model: currentConfig.value.model,
     temperature: currentConfig.value.temperature
+})
+
+const audioConfig = ref({
+    appKey: currentAudioConfig.value.appKey,
+    token: currentAudioConfig.value.token
 })
 
 const handleSave = async () => {
@@ -65,6 +88,23 @@ const handleSave = async () => {
 const handleReset = () => {
     resetAIConfig()
     config.value = { ...currentConfig.value }
+    uni.showToast({
+        title: '已重置为默认配置',
+        icon: 'success'
+    })
+}
+
+const handleSaveAudio = () => {
+    saveAudioConfig(audioConfig.value)
+    uni.showToast({
+        title: '配置已保存',
+        icon: 'success'
+    })
+}
+
+const handleResetAudio = () => {
+    resetAudioConfig()
+    audioConfig.value = { ...currentAudioConfig.value }
     uni.showToast({
         title: '已重置为默认配置',
         icon: 'success'
@@ -105,6 +145,20 @@ onMounted(() => {
     overflow: hidden;
 }
 
+/* #ifdef H5 */
+.config-page {
+    min-height: 100%;
+}
+
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.config-page {
+    min-height: 100vh;
+}
+
+/* #endif */
+
 .config-section {
     margin-bottom: 20px;
 }
@@ -116,20 +170,6 @@ onMounted(() => {
     margin-bottom: 10px;
     display: block;
 }
-
-/* #ifdef H5 */
-.config-page {
-  height: 100%;
-}
-
-/* #endif */
-
-/* #ifdef MP-WEIXIN */
-.config-page {
-  height: 100vh;
-}
-
-/* #endif */
 
 .config-form {
     background-color: #fff;

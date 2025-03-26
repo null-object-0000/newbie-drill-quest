@@ -23,6 +23,20 @@ export interface AIConfig {
     temperature: number
 }
 
+export interface AudioConfig {
+    appKey: string
+    token: string
+}
+
+// 默认语音配置
+const defaultAudioConfig: AudioConfig = {
+    appKey: '',
+    token: ''
+}
+
+// 当前语音配置
+export const currentAudioConfig = ref<AudioConfig>(defaultAudioConfig)
+
 // 题库列表
 export const questionBankList = ref<QuestionBank[]>(questionBanks)
 
@@ -111,6 +125,16 @@ export const loadAIConfig = () => {
             currentConfig.value = defaultConfig
         }
     })
+
+    uni.getStorage({
+        key: 'audio_config',
+        success: (res) => {
+            currentAudioConfig.value = res.data as AudioConfig
+        },
+        fail: () => {
+            currentAudioConfig.value = defaultAudioConfig
+        }
+    })
 }
 
 export const saveAIConfig = (config: AIConfig) => {
@@ -121,11 +145,27 @@ export const saveAIConfig = (config: AIConfig) => {
     })
 }
 
+export const saveAudioConfig = (config: AudioConfig) => {
+    currentAudioConfig.value = config
+    uni.setStorage({
+        key: 'audio_config',
+        data: config
+    })
+}
+
 export const resetAIConfig = () => {
     currentConfig.value = defaultConfig
     uni.setStorage({
         key: 'ai_config',
         data: defaultConfig
+    })
+}
+
+export const resetAudioConfig = () => {
+    currentAudioConfig.value = defaultAudioConfig
+    uni.setStorage({
+        key: 'audio_config',
+        data: defaultAudioConfig
     })
 }
 
