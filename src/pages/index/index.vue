@@ -13,8 +13,19 @@
 
 <script setup lang="ts">
 import { activeQuestionBankId, questionBankList } from '@/store/config'
+import { checkUserPermission } from '@/store/index'
 
-const startQuiz = () => {
+const startQuiz = async () => {
+  // 检查用户权限
+  const hasPermission = await checkUserPermission()
+  if (!hasPermission) {
+    // 用户未授权，跳转到设置页面
+    uni.navigateTo({
+      url: '/pages/profile/config'
+    })
+    return
+  }
+
   const activeId = activeQuestionBankId.value
   if (!activeId) {
     uni.showToast({

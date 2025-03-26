@@ -124,7 +124,7 @@ async function evaluateWithRequest(question: string, answer: string): Promise<Fe
         const { config, data } = generateRequestConfig(question, answer)
 
         uni.request({
-            url: `${config.baseURL}/chat/completions`,
+            url: `${config.baseURL}/v1/chat/completions`,
             method: 'POST',
             header: {
                 'Content-Type': 'application/json',
@@ -155,7 +155,7 @@ async function connectSSE(
     let currentContent = ''
     let current = processEvaluationResult({})
 
-    const response = await fetch(`${config.baseURL}/chat/completions`, {
+    const response = await fetch(`${config.baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

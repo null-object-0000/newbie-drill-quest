@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { currentConfig, saveAIConfig, resetAIConfig, loadConfig, clearEvaluationRecords } from '@/store/config'
+import { checkUserPermission } from '@/store/index'
 
 const config = ref({
     baseURL: currentConfig.value.baseURL,
@@ -47,7 +48,13 @@ const config = ref({
     temperature: currentConfig.value.temperature
 })
 
-const handleSave = () => {
+const handleSave = async () => {
+    // 先验证配置是否有效
+    const hasPermission = await checkUserPermission(config.value)
+    if (!hasPermission) {
+        return
+    }
+
     saveAIConfig(config.value)
     uni.showToast({
         title: '配置已保存',

@@ -16,7 +16,7 @@ export interface EvaluationRecord {
     timestamp: number
 }
 
-interface AIConfig {
+export interface AIConfig {
     baseURL: string
     apiKey: string
     model: string
@@ -34,7 +34,7 @@ export const activeQuestionBankId = ref<string | null>(null)
 
 // 默认配置
 const defaultConfig: AIConfig = {
-    baseURL: 'https://api.deepseek.com/v1',
+    baseURL: 'https://api.deepseek.com',
     apiKey: '',
     model: 'deepseek-chat',
     temperature: 0.7
