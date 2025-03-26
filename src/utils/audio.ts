@@ -1,7 +1,7 @@
 import { currentAudioConfig } from '@/store/config'
 import { v4 as uuidv4 } from 'uuid'
 import Recorder from 'recorder-core'
-import 'recorder-core/src/engine/wav'
+import 'recorder-core/src/engine/pcm'
 
 function generateUUID() {
     return uuidv4().replace(/-/g, '')
@@ -92,7 +92,7 @@ export class AudioRecorder {
         try {
             console.log('准备录音')
             this.recorder = new Recorder({
-                type: 'wav',
+                type: 'pcm',
                 sampleRate: 16000,
                 bitRate: 16,
                 onProcess: (buffers: Int16Array[], powerLevel: number, bufferDuration: number, bufferSampleRate: number, newBufferIdx: number, asyncEnd: () => void) => {
