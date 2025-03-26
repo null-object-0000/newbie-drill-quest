@@ -107,7 +107,6 @@ export class AudioRecorder {
             this.recorder.open(
                 () => {
                     console.log('开始录音');
-                    this.connectWebSocket()
                 },
                 (msg: string, isUserNotAllow: boolean) => { console.log('录音失败', msg, isUserNotAllow) }
             )
@@ -119,6 +118,7 @@ export class AudioRecorder {
     public async startRecording() {
         try {
             this.isRecording = true
+            this.connectWebSocket()
             this.recorder?.start()
         } catch (e) {
             console.error(e)
@@ -129,9 +129,14 @@ export class AudioRecorder {
 
     public async pauseRecording() {
         this.isRecording = false
-        
+
         if (this.recorder) {
             this.recorder.stop()
+        }
+
+        if (this.websocket) {
+            this.websocket.close()
+            this.websocket = null
         }
     }
 
