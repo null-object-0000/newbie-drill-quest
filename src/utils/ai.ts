@@ -66,7 +66,34 @@ function generateParameters(prompt: string) {
         messages: [
             { role: 'system', content: '你是一位经验丰富的技术面试官，善于评估候选人的回答并提供建设性的反馈。' },
             { role: 'user', content: prompt }
-        ]
+        ] as {
+            role: 'user' | 'assistant' | 'system' | 'developer',
+            content: string
+        }[]
+    }
+}
+
+function completionContent(message: string) {
+    // 先看是不是完整的 JSON 对象，是的话直接返回
+    try {
+        JSON.parse(message)
+        return message
+    } catch (error) {
+        // 如果是逗号结尾，就先去掉逗号
+        if (message.endsWith(',')) {
+            message = message.slice(0, -1)
+        }
+
+        // 不是完整的 JSON 对象，尝试完善
+        if (message.endsWith('"')) {
+            // 先看结尾有引号，但是没有花括号的情况，就补充花括号
+            message += '}'
+        } else if (!message.endsWith('"') && !message.endsWith('}')) {
+            // 结尾没有引号也没有花括号的情况，就补充
+            message += '"}'
+        }
+
+        return message
     }
 }
 
@@ -125,6 +152,101 @@ async function evaluateWithRequest(question: string, answer: string): Promise<Fe
     })
 }
 
+// SSE 连接函数
+async function connectSSE(question: string, answer: string, onProgress: (data: Partial<FeedbackResult>) => void): Promise<FeedbackResult> {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let currentContent = ''
+            let current: FeedbackResult = {
+                score: -1,
+                feedback: '',
+                suggestions: '',
+                example: '',
+                needFollowUp: false,
+                followUpQuestion: ''
+            }
+
+            const config: AIConfig = generateAIConfig()
+            const prompt = generatePrompt(question, answer)
+            const data = generateParameters(prompt)
+
+            const response = await fetch(`${config.baseURL}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${config.apiKey}`,
+                    'Accept': 'text/event-stream'
+                },
+                body: JSON.stringify({
+                    ...data,
+                    stream: true
+                })
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            if (!response.body) {
+                throw new Error('Response body is null')
+            }
+
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                const chunk = decoder.decode(value, { stream: true })
+                const lines = chunk.split('\n').filter(line => line.trim() !== '')
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6)
+                        if (data === '[DONE]') continue
+
+                        try {
+                            const parsed = JSON.parse(data) as StreamResponse
+                            if (parsed.error) {
+                                throw new Error(parsed.error)
+                            }
+
+                            if (parsed.choices?.[0]?.delta?.content) {
+                                currentContent += parsed.choices[0].delta.content
+                                try {
+                                    const parsedResult = JSON.parse(completionContent(currentContent))
+                                    current.score = parsedResult.score
+                                    current.feedback = parsedResult.feedback || ''
+                                    current.suggestions = parsedResult.suggestions || ''
+                                    current.example = parsedResult.example || ''
+                                    current.needFollowUp = parsedResult.needFollowUp || false
+                                    current.followUpQuestion = parsedResult.followUpQuestion || ''
+
+                                    onProgress(current)
+                                } catch (parseError) {
+                                    // 解析错误说明 JSON 还未完整，继续等待更多数据
+                                }
+                            }
+
+                            if (parsed.choices?.[0]?.finish_reason === 'stop') {
+                                resolve(current)
+                                return
+                            }
+                        } catch (error) {
+                            console.error('解析 SSE 数据时出错:', error)
+                        }
+                    }
+                }
+            }
+
+            resolve(current)
+        } catch (error) {
+            reject(error)
+        }
+    })
+}
+
 export async function evaluateAnswer(question: string, answer: string, onProgress?: (data: Partial<FeedbackResult>) => void): Promise<FeedbackResult> {
     return new Promise(async (resolve, reject) => {
         try {
@@ -139,6 +261,16 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                 followUpQuestion: ''
             }
 
+            // 在 H5 环境下优先尝试使用 SSE
+            if (uni.getSystemInfoSync().uniPlatform === 'web') {
+                try {
+                    return await connectSSE(question, answer, onProgress || (() => { }))
+                } catch (error) {
+                    console.warn('SSE 连接失败，降级使用 WebSocket:', error)
+                }
+            }
+
+            // 非 H5 环境或 SSE 失败时使用 WebSocket
             let socketTask: UniApp.SocketTask = uni.connectSocket({
                 url: WS_URL,
                 complete: () => { }
@@ -164,29 +296,6 @@ export async function evaluateAnswer(question: string, answer: string, onProgres
                 })
             })
 
-            function completionContent(message: string) {
-                // 先看是不是完整的 JSON 对象，是的话直接返回
-                try {
-                    JSON.parse(message)
-                    return message
-                } catch (error) {
-                    // 如果是逗号结尾，就先去掉逗号
-                    if (message.endsWith(',')) {
-                        message = message.slice(0, -1)
-                    }
-
-                    // 不是完整的 JSON 对象，尝试完善
-                    if (message.endsWith('"')) {
-                        // 先看结尾有引号，但是没有花括号的情况，就补充花括号
-                        message += '}'
-                    } else if (!message.endsWith('"') && !message.endsWith('}')) {
-                        // 结尾没有引号也没有花括号的情况，就补充
-                        message += '"}'
-                    }
-
-                    return message
-                }
-            }
 
             socketTask.onMessage((result) => {
                 try {
