@@ -91,14 +91,24 @@ export class AudioRecorder {
     public async prepareRecording() {
         try {
             console.log('准备录音')
+            Recorder.TrafficImgUrl = null
             this.recorder = new Recorder({
                 type: 'pcm',
                 sampleRate: 16000,
                 bitRate: 16,
+                /**
+                 * @param buffers 缓冲的PCM数据，为从开始录音到现在的所有pcm片段
+                 * @param powerLevel 当前缓冲的音量级别0-100
+                 * @param bufferDuration 已缓冲时长
+                 * @param bufferSampleRate 
+                 * @param newBufferIdx 本次回调新增的buffer起始索引
+                 * @param asyncEnd 
+                 */
                 onProcess: (buffers: Int16Array[], powerLevel: number, bufferDuration: number, bufferSampleRate: number, newBufferIdx: number, asyncEnd: () => void) => {
                     if (this.websocket?.readyState === WebSocket.OPEN) {
-                        for (const buffer of buffers) {
-                            this.websocket?.send(buffer)
+                        for (let i = newBufferIdx; i < buffers.length; i++) {
+                            const buffer = buffers[i]
+                            this.websocket.send(buffer)
                         }
                     }
                 }
